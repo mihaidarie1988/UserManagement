@@ -3,6 +3,8 @@ using UserManagement.Authorization;
 
 namespace UserManagement.Controllers
 {
+    using Microsoft.AspNetCore.Authorization;
+
     [ApiController]
     [Route("[controller]")]
     [ApiKeyAuthorize]
@@ -40,6 +42,7 @@ namespace UserManagement.Controllers
         /// <response code="200">Returns the list of users.</response>
         /// <response code="401">Unauthorized - invalid or missing API key.</response>
         [HttpGet("users")]
+        [AllowAnonymous]
         public IActionResult GetUsers()
         {
             return Ok(Users);
