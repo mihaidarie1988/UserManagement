@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.AspNetCore.Mvc.Filters;
 
@@ -12,7 +13,12 @@ public sealed class ApiKeyAuthorizeAttribute : Attribute, IAuthorizationFilter
 
     public void OnAuthorization(AuthorizationFilterContext context)
     {
-        if (context.Filters.Any(f => f is IAllowAnonymousFilter))
+        var allowAnonymous =
+            context.Filters.Any(f => f is IAllowAnonymousFilter) ||
+            context.ActionDescriptor.EndpointMetadata.OfType<IAllowAnonymous>().Any() ||
+            context.HttpContext.GetEndpoint()?.Metadata.GetMetadata<IAllowAnonymous>() is not null;
+
+        if (allowAnonymous)
         {
             return;
         }
