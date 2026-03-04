@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using UserManagement.Authorization;
-using Microsoft.AspNetCore.Authorization;
 
 namespace UserManagement.Controllers
 {
@@ -18,28 +17,6 @@ namespace UserManagement.Controllers
             new User(1, "Alice", "alice@example.com"),
             new User(2, "Bob", "bob@example.com")
         ];
-
-        private static readonly string[] Summaries =
-        [
-            "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-        ];
-
-        /// <summary>
-        /// Returns a sample weather forecast list.
-        /// </summary>
-        /// <remarks>Example endpoint kept from template; does not require authentication.</remarks>
-        [AllowAnonymous]
-        [HttpGet("weather", Name = "GetWeatherForecast")]
-        public IEnumerable<WeatherForecast> Get()
-        {
-            return Enumerable.Range(1, 5).Select(index => new WeatherForecast
-            {
-                Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                TemperatureC = Random.Shared.Next(-20, 55),
-                Summary = Summaries[Random.Shared.Next(Summaries.Length)]
-            })
-            .ToArray();
-        }
 
         /// <summary>
         /// Creates a new user.
