@@ -1,0 +1,162 @@
+using Microsoft.AspNetCore.Mvc;
+using UserManagement.Authorization;
+using Microsoft.AspNetCore.Authorization;
+
+namespace UserManagement.Controllers
+{
+    [ApiController]
+    [Route("[controller]")]
+    [ApiKeyAuthorize]
+    public class UserManagementController : ControllerBase
+    {
+        // Simple in-memory user model
+        public record User(int Id, string Name, string Email);
+
+        // In-memory user store for demo purposes only
+        private static readonly List<User> Users =
+        [
+            new User(1, "Alice", "alice@example.com"),
+            new User(2, "Bob", "bob@example.com")
+        ];
+
+        private static readonly string[] Summaries =
+        [
+            "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
+        ];
+
+        /// <summary>
+        /// Returns a sample weather forecast list.
+        /// </summary>
+        /// <remarks>Example endpoint kept from template; does not require authentication.</remarks>
+        [AllowAnonymous]
+        [HttpGet("weather", Name = "GetWeatherForecast")]
+        public IEnumerable<WeatherForecast> Get()
+        {
+            return Enumerable.Range(1, 5).Select(index => new WeatherForecast
+            {
+                Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
+                TemperatureC = Random.Shared.Next(-20, 55),
+                Summary = Summaries[Random.Shared.Next(Summaries.Length)]
+            })
+            .ToArray();
+        }
+
+        /// <summary>
+        /// Creates a new user.
+        /// </summary>
+        /// <param name="user">The user to create.</param>
+        /// <response code="201">User created.</response>
+        /// <response code="401">Unauthorized - invalid or missing API key.</response>
+        [HttpPost("users")]
+        public IActionResult CreateUser([FromBody] User user)
+        {
+            var nextId = Users.Count == 0 ? 1 : Users.Max(u => u.Id) + 1;
+            var created = new User(nextId, user.Name, user.Email);
+            Users.Add(created);
+
+            return CreatedAtAction(nameof(GetUserById), new { id = created.Id }, created);
+        }
+
+        /// <summary>
+        /// Gets all users.
+        /// </summary>
+        /// <response code="200">Returns the list of users.</response>
+        /// <response code="401">Unauthorized - invalid or missing API key.</response>
+        [HttpGet("users")]
+        public IActionResult GetUsers()
+        {
+            return Ok(Users);
+        }
+
+        /// <summary>
+        /// Gets a user by identifier.
+        /// </summary>
+        /// <param name="id">User identifier.</param>
+        /// <response code="200">Returns the user.</response>
+        /// <response code="401">Unauthorized - invalid or missing API key.</response>
+        /// <response code="404">User not found.</response>
+        [HttpGet("users/{id:int}")]
+        public IActionResult GetUserById(int id)
+        {
+            var user = Users.FirstOrDefault(u => u.Id == id);
+            if (user is null)
+            {
+                return NotFound();
+            }
+
+            return Ok(user);
+        }
+
+        /// <summary>
+        /// Replaces an existing user.
+        /// </summary>
+        /// <param name="id">User identifier.</param>
+        /// <param name="user">The updated user.</param>
+        /// <response code="204">User updated.</response>
+        /// <response code="401">Unauthorized - invalid or missing API key.</response>
+        /// <response code="404">User not found.</response>
+        [HttpPut("users/{id:int}")]
+        public IActionResult UpdateUser(int id, [FromBody] User user)
+        {
+            var existingIndex = Users.FindIndex(u => u.Id == id);
+            if (existingIndex < 0)
+            {
+                return NotFound();
+            }
+
+            var updated = new User(id, user.Name, user.Email);
+            Users[existingIndex] = updated;
+
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Partially updates a user.
+        /// </summary>
+        /// <param name="id">User identifier.</param>
+        /// <param name="user">The user fields to update.</param>
+        /// <response code="204">User updated.</response>
+        /// <response code="401">Unauthorized - invalid or missing API key.</response>
+        /// <response code="404">User not found.</response>
+        [HttpPatch("users/{id:int}")]
+        public IActionResult PatchUser(int id, [FromBody] User user)
+        {
+            var existingIndex = Users.FindIndex(u => u.Id == id);
+            if (existingIndex < 0)
+            {
+                return NotFound();
+            }
+
+            var current = Users[existingIndex];
+            var patched = new User(
+                id,
+                string.IsNullOrWhiteSpace(user.Name) ? current.Name : user.Name,
+                string.IsNullOrWhiteSpace(user.Email) ? current.Email : user.Email);
+
+            Users[existingIndex] = patched;
+
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Deletes a user.
+        /// </summary>
+        /// <param name="id">User identifier.</param>
+        /// <response code="204">User deleted.</response>
+        /// <response code="401">Unauthorized - invalid or missing API key.</response>
+        /// <response code="404">User not found.</response>
+        [HttpDelete("users/{id:int}")]
+        public IActionResult DeleteUser(int id)
+        {
+            var existingIndex = Users.FindIndex(u => u.Id == id);
+            if (existingIndex < 0)
+            {
+                return NotFound();
+            }
+
+            Users.RemoveAt(existingIndex);
+
+            return NoContent();
+        }
+    }
+}
