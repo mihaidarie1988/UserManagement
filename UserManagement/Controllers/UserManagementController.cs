@@ -3,11 +3,8 @@ using UserManagement.Authorization;
 
 namespace UserManagement.Controllers
 {
-    using Microsoft.AspNetCore.Authorization;
-
     [ApiController]
     [Route("[controller]")]
-    [ApiKeyAuthorize]
     public class UserManagementController : ControllerBase
     {
         // Simple in-memory user model
@@ -25,8 +22,9 @@ namespace UserManagement.Controllers
         /// </summary>
         /// <param name="user">The user to create.</param>
         /// <response code="201">User created.</response>
-        /// <response code="401">Unauthorized - invalid or missing API key.</response>
+        /// <response code="401">Unauthorized - invalid or missing JWT.</response>
         [HttpPost("users")]
+        [UpdateAccess]
         public IActionResult CreateUser([FromBody] User user)
         {
             var nextId = Users.Count == 0 ? 1 : Users.Max(u => u.Id) + 1;
@@ -40,9 +38,9 @@ namespace UserManagement.Controllers
         /// Gets all users.
         /// </summary>
         /// <response code="200">Returns the list of users.</response>
-        /// <response code="401">Unauthorized - invalid or missing API key.</response>
+        /// <response code="401">Unauthorized - invalid or missing JWT.</response>
         [HttpGet("users")]
-        [AllowAnonymous]
+        [ReadAccess]
         public IActionResult GetUsers()
         {
             return Ok(Users);
@@ -53,9 +51,10 @@ namespace UserManagement.Controllers
         /// </summary>
         /// <param name="id">User identifier.</param>
         /// <response code="200">Returns the user.</response>
-        /// <response code="401">Unauthorized - invalid or missing API key.</response>
+        /// <response code="401">Unauthorized - invalid or missing JWT.</response>
         /// <response code="404">User not found.</response>
         [HttpGet("users/{id:int}")]
+        [ReadAccess]
         public IActionResult GetUserById(int id)
         {
             var user = Users.FirstOrDefault(u => u.Id == id);
@@ -73,9 +72,10 @@ namespace UserManagement.Controllers
         /// <param name="id">User identifier.</param>
         /// <param name="user">The updated user.</param>
         /// <response code="204">User updated.</response>
-        /// <response code="401">Unauthorized - invalid or missing API key.</response>
+        /// <response code="401">Unauthorized - invalid or missing JWT.</response>
         /// <response code="404">User not found.</response>
         [HttpPut("users/{id:int}")]
+        [UpdateAccess]
         public IActionResult UpdateUser(int id, [FromBody] User user)
         {
             var existingIndex = Users.FindIndex(u => u.Id == id);
@@ -96,9 +96,10 @@ namespace UserManagement.Controllers
         /// <param name="id">User identifier.</param>
         /// <param name="user">The user fields to update.</param>
         /// <response code="204">User updated.</response>
-        /// <response code="401">Unauthorized - invalid or missing API key.</response>
+        /// <response code="401">Unauthorized - invalid or missing JWT.</response>
         /// <response code="404">User not found.</response>
         [HttpPatch("users/{id:int}")]
+        [UpdateAccess]
         public IActionResult PatchUser(int id, [FromBody] User user)
         {
             var existingIndex = Users.FindIndex(u => u.Id == id);
@@ -123,9 +124,10 @@ namespace UserManagement.Controllers
         /// </summary>
         /// <param name="id">User identifier.</param>
         /// <response code="204">User deleted.</response>
-        /// <response code="401">Unauthorized - invalid or missing API key.</response>
+        /// <response code="401">Unauthorized - invalid or missing JWT.</response>
         /// <response code="404">User not found.</response>
         [HttpDelete("users/{id:int}")]
+        [DeleteAccess]
         public IActionResult DeleteUser(int id)
         {
             var existingIndex = Users.FindIndex(u => u.Id == id);
