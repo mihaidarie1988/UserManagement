@@ -1,0 +1,27 @@
+meta {
+  name: Update User (PATCH)
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/UserManagement/users/{{userId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "id": {{userId}},
+    "name": "Alice Partial",
+    "email": ""
+  }
+}
