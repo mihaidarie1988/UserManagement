@@ -50,6 +50,10 @@ Authentication is JWT Bearer-based.
 
 `Bearer <accessToken>`
 
+This adds the `Authorization` header to protected requests:
+
+`Authorization: Bearer <accessToken>`
+
 Local users:
 
 - `reader / reader123!` => role: `Read`
@@ -87,11 +91,11 @@ curl -k -X POST https://localhost:<port>/auth/token \
 # 2) Set token (paste value from response)
 TOKEN="<accessToken>"
 
-# 3) Create user (Create operation, requires Update role)
+# 3) Create user (Create operation, requires Create role)
 curl -k -X POST https://localhost:<port>/UserManagement/users \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{ "id": 0, "name": "Charlie", "email": "charlie@example.com" }'
+  -d '{ "name": "Charlie", "email": "charlie@example.com" }'
 
 # 4) Get all users (Read)
 curl -k https://localhost:<port>/UserManagement/users \
@@ -105,13 +109,13 @@ curl -k https://localhost:<port>/UserManagement/users/1 \
 curl -k -X PUT https://localhost:<port>/UserManagement/users/1 \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{ "id": 1, "name": "Alice Updated", "email": "alice.updated@example.com" }'
+  -d '{ "name": "Alice Updated", "email": "alice.updated@example.com" }'
 
 # 7) Partially update user (Update)
 curl -k -X PATCH https://localhost:<port>/UserManagement/users/1 \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{ "id": 1, "name": "Alice Partial", "email": "" }'
+  -d '{ "name": "Alice Partial" }'
 
 # 8) Delete user (Delete)
 curl -k -X DELETE https://localhost:<port>/UserManagement/users/2 \

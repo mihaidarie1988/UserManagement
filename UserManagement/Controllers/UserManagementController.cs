@@ -8,7 +8,9 @@ namespace UserManagement.Controllers
     public class UserManagementController : ControllerBase
     {
         // Simple in-memory user model
-        public record User(int Id, string Name, string Email);
+        public new record User(int Id, string Name, string Email);
+        public record WriteUserRequest(string Name, string Email);
+        public record PatchUserRequest(string? Name, string? Email);
 
         // In-memory user store for demo purposes only
         private static readonly List<User> Users =
@@ -25,7 +27,7 @@ namespace UserManagement.Controllers
         /// <response code="401">Unauthorized - invalid or missing JWT.</response>
         [HttpPost("users")]
         [CreateAccess]
-        public IActionResult CreateUser([FromBody] User user)
+        public IActionResult CreateUser([FromBody] WriteUserRequest user)
         {
             var nextId = Users.Count == 0 ? 1 : Users.Max(u => u.Id) + 1;
             var created = new User(nextId, user.Name, user.Email);
@@ -76,7 +78,7 @@ namespace UserManagement.Controllers
         /// <response code="404">User not found.</response>
         [HttpPut("users/{id:int}")]
         [UpdateAccess]
-        public IActionResult UpdateUser(int id, [FromBody] User user)
+        public IActionResult UpdateUser(int id, [FromBody] WriteUserRequest user)
         {
             var existingIndex = Users.FindIndex(u => u.Id == id);
             if (existingIndex < 0)
@@ -100,7 +102,7 @@ namespace UserManagement.Controllers
         /// <response code="404">User not found.</response>
         [HttpPatch("users/{id:int}")]
         [UpdateAccess]
-        public IActionResult PatchUser(int id, [FromBody] User user)
+        public IActionResult PatchUser(int id, [FromBody] PatchUserRequest user)
         {
             var existingIndex = Users.FindIndex(u => u.Id == id);
             if (existingIndex < 0)
