@@ -16,9 +16,10 @@ public class AuthController(JwtTokenOptions jwt) : ControllerBase
         new(StringComparer.OrdinalIgnoreCase)
         {
             ["reader"] = ("reader123!", [AuthorizationPolicies.ReadRole]),
+            ["creator"] = ("creator123!", [AuthorizationPolicies.CreateRole]),
             ["editor"] = ("editor123!", [AuthorizationPolicies.UpdateRole]),
             ["deleter"] = ("deleter123!", [AuthorizationPolicies.DeleteRole]),
-            ["admin"] = ("admin123!", [AuthorizationPolicies.ReadRole, AuthorizationPolicies.UpdateRole, AuthorizationPolicies.DeleteRole])
+            ["admin"] = ("admin123!", [AuthorizationPolicies.ReadRole, AuthorizationPolicies.CreateRole, AuthorizationPolicies.UpdateRole, AuthorizationPolicies.DeleteRole])
         };
 
     public record TokenRequest(string Username, string Password);

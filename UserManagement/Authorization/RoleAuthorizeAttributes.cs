@@ -10,6 +10,14 @@ public sealed class ReadAccessAttribute : AuthorizeAttribute
     }
 }
 
+public sealed class CreateAccessAttribute : AuthorizeAttribute
+{
+    public CreateAccessAttribute()
+    {
+        Policy = AuthorizationPolicies.CreatePolicy;
+    }
+}
+
 public sealed class UpdateAccessAttribute : AuthorizeAttribute
 {
     public UpdateAccessAttribute()

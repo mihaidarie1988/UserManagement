@@ -32,6 +32,7 @@ builder.Services
 
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy(AuthorizationPolicies.ReadPolicy, policy => policy.RequireRole(AuthorizationPolicies.ReadRole))
+    .AddPolicy(AuthorizationPolicies.CreatePolicy, policy => policy.RequireRole(AuthorizationPolicies.CreateRole))
     .AddPolicy(AuthorizationPolicies.UpdatePolicy, policy => policy.RequireRole(AuthorizationPolicies.UpdateRole))
     .AddPolicy(AuthorizationPolicies.DeletePolicy, policy => policy.RequireRole(AuthorizationPolicies.DeleteRole));
 

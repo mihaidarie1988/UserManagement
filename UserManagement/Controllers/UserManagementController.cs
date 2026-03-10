@@ -24,7 +24,7 @@ namespace UserManagement.Controllers
         /// <response code="201">User created.</response>
         /// <response code="401">Unauthorized - invalid or missing JWT.</response>
         [HttpPost("users")]
-        [UpdateAccess]
+        [CreateAccess]
         public IActionResult CreateUser([FromBody] User user)
         {
             var nextId = Users.Count == 0 ? 1 : Users.Max(u => u.Id) + 1;
