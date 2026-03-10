@@ -83,13 +83,16 @@ Role rules:
 ## Example curl
 
 ```bash
-# 1) Get token
+# 1) Get token (use admin user to call all endpoints below)
 curl -k -X POST https://localhost:<port>/auth/token \
   -H "Content-Type: application/json" \
   -d '{ "username": "admin", "password": "admin123!" }'
 
 # 2) Set token (paste value from response)
 TOKEN="<accessToken>"
+
+# Optional: verify header format used by protected calls
+# Authorization: Bearer $TOKEN
 
 # 3) Create user (Create operation, requires Create role)
 curl -k -X POST https://localhost:<port>/UserManagement/users \

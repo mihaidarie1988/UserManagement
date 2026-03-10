@@ -1,4 +1,4 @@
-using Microsoft.OpenApi;
+using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using UserManagement.Authorization;
@@ -39,16 +39,6 @@ builder.Services.AddAuthorizationBuilder()
 builder.Services.AddSingleton(new JwtTokenOptions(jwtIssuer, jwtAudience, jwtSigningKey));
 builder.Services.AddSwaggerGen(options =>
 {
-    var bearerScheme = new OpenApiSecurityScheme
-    {
-        In = ParameterLocation.Header,
-        Name = "Authorization",
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT",
-        Description = "JWT Authorization header using the Bearer scheme. Example: 'Bearer {token}'"
-    };
-
     options.SwaggerDoc("v1", new OpenApiInfo
     {
         Title = "User Management API",
@@ -56,8 +46,17 @@ builder.Services.AddSwaggerGen(options =>
         Description = "Local user management API with JWT authentication and role-based authorization."
     });
 
-    options.AddSecurityDefinition("Bearer", bearerScheme);
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Description = "Enter your JWT token (without the 'Bearer' prefix)"
+    });
 
+    options.OperationFilter<BearerSecurityOperationFilter>();
 });
 
 var app = builder.Build();
