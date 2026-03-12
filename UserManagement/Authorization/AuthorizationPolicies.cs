@@ -6,6 +6,7 @@ public static class AuthorizationPolicies
     public const string CreateRole = "Create";
     public const string UpdateRole = "Update";
     public const string DeleteRole = "Delete";
+    public const string AdminRole = "Admin";
 
     public const string ReadPolicy = "RequireReadRole";
     public const string CreatePolicy = "RequireCreateRole";

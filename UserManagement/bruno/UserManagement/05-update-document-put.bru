@@ -1,0 +1,26 @@
+meta {
+  name: Update Document (PUT)
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{baseUrl}}/Document/{{documentId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "title": "Updated Title",
+    "content": "Updated document content."
+  }
+}

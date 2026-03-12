@@ -1,9 +1,11 @@
-# UserManagement API
+# Document Management API
 
 Small ASP.NET Core Web API sample with:
-- `UserManagementController` CRUD endpoints
+- `DocumentController` CRUD endpoints
 - local JWT authentication (`/auth/token`)
 - role-based authorization for read/create/update/delete
+- ownership enforcement: each user sees and edits only their own documents
+- admin bypasses ownership and can access all documents
 - Swagger UI for local testing
 
 ## Prerequisites
@@ -46,81 +48,84 @@ Authentication is JWT Bearer-based.
 { "username": "admin", "password": "admin123!" }
 ```
 
-2. In Swagger, click **Authorize** and provide:
+2. In Swagger, click **Authorize** and paste the `accessToken` value (without the `Bearer ` prefix — Swagger adds it automatically).
 
-`Bearer <accessToken>`
+### Local users
 
-This adds the `Authorization` header to protected requests:
+| Username  | Password      | Roles                                    |
+|-----------|---------------|------------------------------------------|
+| `reader`  | `reader123!`  | `Read`                                   |
+| `creator` | `creator123!` | `Create`                                 |
+| `editor`  | `editor123!`  | `Update`                                 |
+| `deleter` | `deleter123!` | `Delete`                                 |
+| `admin`   | `admin123!`   | `Read`, `Create`, `Update`, `Delete`, `Admin` |
 
-`Authorization: Bearer <accessToken>`
+### Role rules
 
-Local users:
+| Role     | Allowed operations                    |
+|----------|---------------------------------------|
+| `Read`   | GET endpoints                         |
+| `Create` | POST (create) endpoint                |
+| `Update` | PUT and PATCH endpoints               |
+| `Delete` | DELETE endpoint                       |
+| `Admin`  | All operations across all documents   |
 
-- `reader / reader123!` => role: `Read`
-- `creator / creator123!` => role: `Create`
-- `editor / editor123!` => role: `Update`
-- `deleter / deleter123!` => role: `Delete`
-- `admin / admin123!` => roles: `Read, Create, Update, Delete`
+### Ownership rules
 
-Role rules:
-
-- `Read` can call GET endpoints
-- `Create` can call POST (create) endpoint
-- `Update` can call PUT and PATCH endpoints
-- `Delete` can call DELETE
+- Non-admin users can only read and modify **documents they created**.
+- `GET /Document` returns only the caller's own documents (admin sees all).
+- `GET /Document/{id}`, `PUT`, `PATCH`, `DELETE` return **403** if the document exists but belongs to another user.
 
 ## Endpoints
 
-- `POST /auth/token` (public)
-
-- `GET /UserManagement/users` (`Read`)
-- `GET /UserManagement/users/{id}` (`Read`)
-- `POST /UserManagement/users` (`Create`)
-- `PUT /UserManagement/users/{id}` (`Update`)
-- `PATCH /UserManagement/users/{id}` (`Update`)
-- `DELETE /UserManagement/users/{id}` (`Delete`)
+| Method   | Endpoint              | Role required | Ownership check |
+|----------|-----------------------|---------------|-----------------|
+| `POST`   | `/auth/token`         | public        | —               |
+| `GET`    | `/Document`           | `Read`        | own only        |
+| `GET`    | `/Document/{id}`      | `Read`        | own only        |
+| `POST`   | `/Document`           | `Create`      | stamped on create |
+| `PUT`    | `/Document/{id}`      | `Update`      | own only        |
+| `PATCH`  | `/Document/{id}`      | `Update`      | own only        |
+| `DELETE` | `/Document/{id}`      | `Delete`      | own only        |
 
 ## Example curl
 
 ```bash
-# 1) Get token (use admin user to call all endpoints below)
+# 1) Get token (admin can call all endpoints)
 curl -k -X POST https://localhost:<port>/auth/token \
   -H "Content-Type: application/json" \
   -d '{ "username": "admin", "password": "admin123!" }'
 
-# 2) Set token (paste value from response)
+# 2) Set token (paste accessToken from response)
 TOKEN="<accessToken>"
 
-# Optional: verify header format used by protected calls
-# Authorization: Bearer $TOKEN
-
-# 3) Create user (Create operation, requires Create role)
-curl -k -X POST https://localhost:<port>/UserManagement/users \
+# 3) Create document (requires Create role)
+curl -k -X POST https://localhost:<port>/Document \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{ "name": "Charlie", "email": "charlie@example.com" }'
+  -d '{ "title": "New Document", "content": "Document content goes here." }'
 
-# 4) Get all users (Read)
-curl -k https://localhost:<port>/UserManagement/users \
+# 4) Get all documents (requires Read role; non-admin sees own only)
+curl -k https://localhost:<port>/Document \
   -H "Authorization: Bearer $TOKEN"
 
-# 5) Get user by id (Read)
-curl -k https://localhost:<port>/UserManagement/users/1 \
+# 5) Get document by id (requires Read role)
+curl -k https://localhost:<port>/Document/1 \
   -H "Authorization: Bearer $TOKEN"
 
-# 6) Replace user (Update)
-curl -k -X PUT https://localhost:<port>/UserManagement/users/1 \
+# 6) Replace document (requires Update role)
+curl -k -X PUT https://localhost:<port>/Document/1 \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{ "name": "Alice Updated", "email": "alice.updated@example.com" }'
+  -d '{ "title": "Updated Title", "content": "Updated document content." }'
 
-# 7) Partially update user (Update)
-curl -k -X PATCH https://localhost:<port>/UserManagement/users/1 \
+# 7) Partially update document (requires Update role)
+curl -k -X PATCH https://localhost:<port>/Document/1 \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{ "name": "Alice Partial" }'
+  -d '{ "title": "Partially Updated Title" }'
 
-# 8) Delete user (Delete)
-curl -k -X DELETE https://localhost:<port>/UserManagement/users/2 \
+# 8) Delete document (requires Delete role)
+curl -k -X DELETE https://localhost:<port>/Document/2 \
   -H "Authorization: Bearer $TOKEN"
 ```

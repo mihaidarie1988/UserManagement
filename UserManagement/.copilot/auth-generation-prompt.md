@@ -1,14 +1,16 @@
-I have an existing ASP.NET Core Web API project (.NET 10) with CRUD endpoints in project UserManagement-workshop
+I have an existing ASP.NET Core Web API project (.NET 10) with CRUD endpoints for document management.
 
-Let's add authentication and authorization to UserManagement-workshop project:
+Let's add authentication and authorization to the project:
 
-in `UserManagementController`.
+in `DocumentController`.
 Please add local JWT authentication + role-based authorization to match this exact behavior:
 
 GOAL
 - Use local JWT auth (no Azure/Entra/external identity provider).
 - Add token endpoint: `POST /auth/token`.
 - Protect API endpoints by role using custom authorization attributes and policies.
+- Enforce ownership: each authenticated user can only read/edit/delete documents they created;
+  `admin` bypasses ownership and can access all documents.
 
 REQUIREMENTS
 
@@ -19,6 +21,7 @@ REQUIREMENTS
 2) Authorization constants — create `Authorization/AuthorizationPolicies.cs`
 - Add `AuthorizationPolicies` static class with role and policy name constants:
   - `ReadRole = "Read"`, `CreateRole = "Create"`, `UpdateRole = "Update"`, `DeleteRole = "Delete"`
+  - `AdminRole = "Admin"` — assigned only to `admin`; used to bypass ownership checks.
   - `ReadPolicy = "RequireReadRole"`, `CreatePolicy = "RequireCreateRole"`,
     `UpdatePolicy = "RequireUpdateRole"`, `DeletePolicy = "RequireDeleteRole"`
 
@@ -67,16 +70,29 @@ REQUIREMENTS
   - `creator / creator123!` => `Create`
   - `editor  / editor123!`  => `Update`
   - `deleter / deleter123!` => `Delete`
-  - `admin   / admin123!`   => `Read, Create, Update, Delete`
+  - `admin   / admin123!`   => `Read, Create, Update, Delete, Admin`
 - On success return JWT + expiry + roles; on failure return 401.
 
-8) Apply auth to `UserManagementController` endpoints
-- `GET  /UserManagement/users`        -> `[ReadAccess]`
-- `GET  /UserManagement/users/{id}`   -> `[ReadAccess]`
-- `POST /UserManagement/users`        -> `[CreateAccess]`
-- `PUT  /UserManagement/users/{id}`   -> `[UpdateAccess]`
-- `PATCH /UserManagement/users/{id}`  -> `[UpdateAccess]`
-- `DELETE /UserManagement/users/{id}` -> `[DeleteAccess]`
+8) Apply auth and ownership to `DocumentController` endpoints
+- Add `using System.Security.Claims;`.
+- Add `string CreatedBy` as the last field of the `Document` record.
+- Pre-seeded documents should have `CreatedBy = "admin"`.
+- Add two private helpers (use `HttpContext.User` to avoid collision with the `Document` record):
+  - `IsAdmin()` — `HttpContext.User.IsInRole(AuthorizationPolicies.AdminRole)`
+  - `CurrentUsername()` — `HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)`
+- Endpoint rules:
+  - `POST /Document` — stamp `CreatedBy = CurrentUsername()` on the new record.
+  - `GET  /Document` — admin sees all; others see only documents where `CreatedBy == CurrentUsername()`.
+  - `GET  /Document/{id}`, `PUT`, `PATCH`, `DELETE` — return `404` if not found;
+    return `403` (`Forbid()`) if found but `!IsAdmin() && record.CreatedBy != CurrentUsername()`.
+  - PUT/PATCH must preserve the original `CreatedBy` when rebuilding the record.
+- Role-to-endpoint mapping:
+  - `GET  /Document`        -> `[ReadAccess]`
+  - `GET  /Document/{id}`   -> `[ReadAccess]`
+  - `POST /Document`        -> `[CreateAccess]`
+  - `PUT  /Document/{id}`   -> `[UpdateAccess]`
+  - `PATCH /Document/{id}`  -> `[UpdateAccess]`
+  - `DELETE /Document/{id}` -> `[DeleteAccess]`
 
 9) Cleanup and validation
 - Avoid any API-key auth logic or filters.
