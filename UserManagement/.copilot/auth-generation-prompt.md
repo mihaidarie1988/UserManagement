@@ -1,4 +1,7 @@
-I have an existing ASP.NET Core Web API project (.NET 10) with CRUD endpoints 
+I have an existing ASP.NET Core Web API project (.NET 10) with CRUD endpoints in project UserManagement-workshop
+
+Let's add authentication and authorization to UserManagement-workshop project:
+
 in `UserManagementController`.
 Please add local JWT authentication + role-based authorization to match this exact behavior:
 
