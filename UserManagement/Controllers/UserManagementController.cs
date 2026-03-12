@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
 using UserManagement.Authorization;
 
 namespace UserManagement.Controllers
@@ -27,7 +26,7 @@ namespace UserManagement.Controllers
         /// <response code="201">User created.</response>
         /// <response code="401">Unauthorized - invalid or missing JWT.</response>
         [HttpPost("users")]
-        [Authorize(Policy = AuthorizationPolicies.CreatePolicy)]
+        [CreateAccess]
         public IActionResult CreateUser([FromBody] WriteUserRequest user)
         {
             var nextId = Users.Count == 0 ? 1 : Users.Max(u => u.Id) + 1;
@@ -43,7 +42,7 @@ namespace UserManagement.Controllers
         /// <response code="200">Returns the list of users.</response>
         /// <response code="401">Unauthorized - invalid or missing JWT.</response>
         [HttpGet("users")]
-        [Authorize(Policy = AuthorizationPolicies.ReadPolicy)]
+        [ReadAccess]
         public IActionResult GetUsers()
         {
             return Ok(Users);
@@ -57,7 +56,7 @@ namespace UserManagement.Controllers
         /// <response code="401">Unauthorized - invalid or missing JWT.</response>
         /// <response code="404">User not found.</response>
         [HttpGet("users/{id:int}")]
-        [Authorize(Policy = AuthorizationPolicies.ReadPolicy)]
+        [ReadAccess]
         public IActionResult GetUserById(int id)
         {
             var user = Users.FirstOrDefault(u => u.Id == id);
@@ -78,7 +77,7 @@ namespace UserManagement.Controllers
         /// <response code="401">Unauthorized - invalid or missing JWT.</response>
         /// <response code="404">User not found.</response>
         [HttpPut("users/{id:int}")]
-        [Authorize(Policy = AuthorizationPolicies.UpdatePolicy)]
+        [UpdateAccess]
         public IActionResult UpdateUser(int id, [FromBody] WriteUserRequest user)
         {
             var existingIndex = Users.FindIndex(u => u.Id == id);
@@ -102,7 +101,7 @@ namespace UserManagement.Controllers
         /// <response code="401">Unauthorized - invalid or missing JWT.</response>
         /// <response code="404">User not found.</response>
         [HttpPatch("users/{id:int}")]
-        [Authorize(Policy = AuthorizationPolicies.UpdatePolicy)]
+        [UpdateAccess]
         public IActionResult PatchUser(int id, [FromBody] PatchUserRequest user)
         {
             var existingIndex = Users.FindIndex(u => u.Id == id);
@@ -130,7 +129,7 @@ namespace UserManagement.Controllers
         /// <response code="401">Unauthorized - invalid or missing JWT.</response>
         /// <response code="404">User not found.</response>
         [HttpDelete("users/{id:int}")]
-        [Authorize(Policy = AuthorizationPolicies.DeletePolicy)]
+        [DeleteAccess]
         public IActionResult DeleteUser(int id)
         {
             var existingIndex = Users.FindIndex(u => u.Id == id);
