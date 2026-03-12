@@ -14,7 +14,6 @@ REQUIREMENTS
 
 1) NuGet packages
 - Add `Microsoft.AspNetCore.Authentication.JwtBearer` (match runtime version).
-- Add `Swashbuckle.AspNetCore` version 6.9.0.
 - Do NOT add `Microsoft.AspNetCore.OpenApi` — it conflicts with Swashbuckle.
 
 2) JWT authentication setup
