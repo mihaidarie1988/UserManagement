@@ -16,24 +16,50 @@ REQUIREMENTS
 - Add `Microsoft.AspNetCore.Authentication.JwtBearer` (match runtime version).
 - Do NOT add `Microsoft.AspNetCore.OpenApi` — it conflicts with Swashbuckle.
 
-2) JWT authentication setup
-- In `Program.cs`, configure:
+2) Authorization constants — create `Authorization/AuthorizationPolicies.cs`
+- Add `AuthorizationPolicies` static class with role and policy name constants:
+  - `ReadRole = "Read"`, `CreateRole = "Create"`, `UpdateRole = "Update"`, `DeleteRole = "Delete"`
+  - `ReadPolicy = "RequireReadRole"`, `CreatePolicy = "RequireCreateRole"`,
+    `UpdatePolicy = "RequireUpdateRole"`, `DeletePolicy = "RequireDeleteRole"`
+
+3) JWT options record — create `Authorization/JwtTokenOptions.cs`
+- Create a record `JwtTokenOptions(string Issuer, string Audience, string SigningKey)`.
+
+4) Custom authorize attributes — create `Authorization/RoleAuthorizeAttributes.cs`
+- Add `[ReadAccess]`, `[CreateAccess]`, `[UpdateAccess]`, `[DeleteAccess]` attributes.
+- Each inherits `AuthorizeAttribute` and sets its `Policy` from `AuthorizationPolicies`.
+
+5) Swagger operation filter — create `Authorization/BearerSecurityOperationFilter.cs`
+- Implement `BearerSecurityOperationFilter : IOperationFilter`.
+- Detect `[Authorize]` (or derived attributes) on the action or its declaring type.
+- If found, add an `OpenApiSecurityRequirement` referencing the `Bearer` scheme
+  (`ReferenceType.SecurityScheme`, Id = `"Bearer"`).
+- Use `using Microsoft.OpenApi.Models;` (NOT `Microsoft.OpenApi`).
+
+6) JWT authentication setup — update `Program.cs`
+- All types from steps 2–5 now exist; reference them here.
+- Store issuer/audience/signing key as local constants:
+  - Issuer:     `UserManagement.Local`
+  - Audience:   `UserManagement.Api`
+  - SigningKey: `UserManagement_Local_JWT_Signing_Key_2026!`
+- Register `JwtTokenOptions` as a singleton (these are the values `AuthController` will inject).
+- Configure:
   - `AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(...)`
-  - `AddAuthorizationBuilder()` with policies:
+  - `AddAuthorizationBuilder()` with policies from `AuthorizationPolicies`:
     - `RequireReadRole`   -> role `Read`
     - `RequireCreateRole` -> role `Create`
     - `RequireUpdateRole` -> role `Update`
     - `RequireDeleteRole` -> role `Delete`
   - `UseAuthentication()` before `UseAuthorization()`.
-- Store issuer/audience/signing key as local constants:
-  - Issuer:     `UserManagement.Local`
-  - Audience:   `UserManagement.Api`
-  - SigningKey: `UserManagement_Local_JWT_Signing_Key_2026!`
-- Create a record `JwtTokenOptions(string Issuer, string Audience, string SigningKey)`
-  and register it as a singleton.
+- In `AddSwaggerGen`:
+  - Call `AddSecurityDefinition("Bearer", ...)` with:
+    - Type = Http, Scheme = bearer, BearerFormat = JWT.
+  - Register `options.OperationFilter<BearerSecurityOperationFilter>()`.
+- Keep Swagger enabled in development.
 
-3) Token issuing endpoint
-- Create `AuthController` with route `auth`.
+7) Token issuing endpoint — create `Controllers/AuthController.cs`
+- The JWT constants are now registered (step 6); inject `JwtTokenOptions` via primary constructor.
+- Add `AuthController` with route `auth`.
 - Add `POST /auth/token` ([AllowAnonymous]) that accepts:
   - `{ "username": "...", "password": "..." }`
 - Validate against in-memory local users:
@@ -44,13 +70,7 @@ REQUIREMENTS
   - `admin   / admin123!`   => `Read, Create, Update, Delete`
 - On success return JWT + expiry + roles; on failure return 401.
 
-4) Authorization policies and custom attributes
-- Add `AuthorizationPolicies` static class with role and policy name constants.
-- Add custom authorize attributes in `RoleAuthorizeAttributes`:
-  - `[ReadAccess]`, `[CreateAccess]`, `[UpdateAccess]`, `[DeleteAccess]`
-  - Each inherits `AuthorizeAttribute` and sets its `Policy` from `AuthorizationPolicies`.
-
-5) Apply auth to `UserManagementController` endpoints
+8) Apply auth to `UserManagementController` endpoints
 - `GET  /UserManagement/users`        -> `[ReadAccess]`
 - `GET  /UserManagement/users/{id}`   -> `[ReadAccess]`
 - `POST /UserManagement/users`        -> `[CreateAccess]`
@@ -58,27 +78,12 @@ REQUIREMENTS
 - `PATCH /UserManagement/users/{id}`  -> `[UpdateAccess]`
 - `DELETE /UserManagement/users/{id}` -> `[DeleteAccess]`
 
-6) Swagger with Bearer JWT auth
-- Keep Swagger enabled in development.
-- In `AddSwaggerGen`:
-  - Call `AddSecurityDefinition("Bearer", ...)` with:
-    - Type = Http, Scheme = bearer, BearerFormat = JWT.
-  - Create `BearerSecurityOperationFilter : IOperationFilter` in the
-    `Authorization` folder:
-    - Detect `[Authorize]` (or derived attributes) on the action or controller.
-    - Add an `OpenApiSecurityRequirement` with a `Reference` to the `Bearer`
-      scheme using `ReferenceType.SecurityScheme`.
-    - Use `using Microsoft.OpenApi.Models;` (NOT `Microsoft.OpenApi`).
-  - Register it with `options.OperationFilter<BearerSecurityOperationFilter>()`.
-- In Swagger UI: paste your JWT token (without `Bearer ` prefix) in the
-  Authorize dialog — Swagger adds the prefix automatically.
-
-7) Cleanup and validation
+9) Cleanup and validation
 - Avoid any API-key auth logic or filters.
 - Keep minimal changes to existing controller endpoint behavior.
 - Ensure project builds successfully.
 
-8) README update
+10) README update
 - Document:
   - `POST /auth/token`
   - Local users, roles, and role rules (Read/Create/Update/Delete)
