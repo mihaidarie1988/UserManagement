@@ -104,7 +104,6 @@ ALICE=$(curl -s -k -X POST https://localhost:7274/auth/token -H "Content-Type: a
 echo "ALICE's token: $ALICE"
 
 BOB=$(curl -s -k -X POST https://localhost:7274/auth/token -H "Content-Type: application/json" -d '{"username":"bob","password":"bob123!"}' | sed 's/.*"accessToken":"\([^"]*\)".*/\1/')
-
 echo "BOB's token: $BOB"
 
 # Alice sees only her documents (ids 1 and 2)
