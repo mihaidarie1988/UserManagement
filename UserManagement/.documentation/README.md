@@ -7,6 +7,8 @@ Small ASP.NET Core Web API sample with:
 - ownership enforcement: each user sees and edits only their own documents
 - admin bypasses ownership and can access all documents
 - Swagger UI for local testing
+- Testing with curl
+- Testing with Bruno tool
 
 ## Prerequisites
 
@@ -90,42 +92,44 @@ Authentication is JWT Bearer-based.
 
 ## Example curl
 
+> **Port:** The examples below use `7274`. Check your startup output and adjust if yours differs.
+
+### bash (requires [`jq`](https://jqlang.org/download/))
+
 ```bash
-# 1) Get token (admin can call all endpoints)
-curl -k -X POST https://localhost:<port>/auth/token \
+# 1) Get token and store it
+TOKEN=$(curl -s -k -X POST https://localhost:7274/auth/token \
   -H "Content-Type: application/json" \
-  -d '{ "username": "admin", "password": "admin123!" }'
+  -d '{"username":"admin","password":"admin123!"}' \
+  | jq -r '.accessToken')
 
-# 2) Set token (paste accessToken from response)
-TOKEN="<accessToken>"
-
-# 3) Create document (requires Create role)
-curl -k -X POST https://localhost:<port>/Document \
+# 2) Create document (requires Create role)
+curl -s -k -X POST https://localhost:7274/Document \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{ "title": "New Document", "content": "Document content goes here." }'
+  -d '{"title":"New Document","content":"Document content goes here."}'
 
-# 4) Get all documents (requires Read role; non-admin sees own only)
-curl -k https://localhost:<port>/Document \
+# 3) Get all documents (requires Read role; non-admin sees own only)
+curl -s -k https://localhost:7274/Document \
   -H "Authorization: Bearer $TOKEN"
 
-# 5) Get document by id (requires Read role)
-curl -k https://localhost:<port>/Document/1 \
+# 4) Get document by id (requires Read role)
+curl -s -k https://localhost:7274/Document/1 \
   -H "Authorization: Bearer $TOKEN"
 
-# 6) Replace document (requires Update role)
-curl -k -X PUT https://localhost:<port>/Document/1 \
+# 5) Replace document (requires Update role)
+curl -s -k -X PUT https://localhost:7274/Document/1 \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{ "title": "Updated Title", "content": "Updated document content." }'
+  -d '{"title":"Updated Title","content":"Updated document content."}'
 
-# 7) Partially update document (requires Update role)
-curl -k -X PATCH https://localhost:<port>/Document/1 \
+# 6) Partially update document (requires Update role)
+curl -s -k -X PATCH https://localhost:7274/Document/1 \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{ "title": "Partially Updated Title" }'
+  -d '{"title":"Partially Updated Title"}'
 
-# 8) Delete document (requires Delete role)
-curl -k -X DELETE https://localhost:<port>/Document/2 \
+# 7) Delete document (requires Delete role)
+curl -s -k -X DELETE https://localhost:7274/Document/2 \
   -H "Authorization: Bearer $TOKEN"
 ```
