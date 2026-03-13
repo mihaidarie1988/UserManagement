@@ -12,7 +12,7 @@ namespace UserManagement.Controllers;
 [Route("auth")]
 public class AuthController(JwtTokenOptions jwt) : ControllerBase
 {
-    private static readonly Dictionary<string, (string Password, string[] Roles)> LocalUsers =
+    private static readonly Dictionary<string, (string Password, string[] Roles)> LocalUsersWithRoles =
         new(StringComparer.OrdinalIgnoreCase)
         {
             ["reader"] = ("reader123!", [AuthorizationPolicies.ReadRole]),
@@ -35,7 +35,7 @@ public class AuthController(JwtTokenOptions jwt) : ControllerBase
     [HttpPost("token")]
     public IActionResult CreateToken([FromBody] TokenRequest request)
     {
-        if (!LocalUsers.TryGetValue(request.Username, out var account) ||
+        if (!LocalUsersWithRoles.TryGetValue(request.Username, out var account) ||
             !string.Equals(account.Password, request.Password, StringComparison.Ordinal))
         {
             return Unauthorized("Invalid username or password.");

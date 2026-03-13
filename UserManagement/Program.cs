@@ -2,6 +2,7 @@ using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using UserManagement.Authorization;
+using UserManagement.Services;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -37,13 +38,14 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy(AuthorizationPolicies.DeletePolicy, policy => policy.RequireRole(AuthorizationPolicies.DeleteRole));
 
 builder.Services.AddSingleton(new JwtTokenOptions(jwtIssuer, jwtAudience, jwtSigningKey));
+builder.Services.AddSingleton<DocumentStore>();
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "User Management API",
+        Title = "Document Management API",
         Version = "v1",
-        Description = "Local user management API with JWT authentication and role-based authorization."
+        Description = "Document management API with JWT authentication, role-based authorization and per-document ownership."
     });
 
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
