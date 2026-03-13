@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include=".bruno\DocumentManagement\bruno.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include=".bruno\DocumentManagement\01-auth-token.bru" />
+    <None Include=".bruno\DocumentManagement\02-create-document.bru" />
+    <None Include=".bruno\DocumentManagement\03-get-documents.bru" />
+    <None Include=".bruno\DocumentManagement\04-get-document-by-id.bru" />
+    <None Include=".bruno\DocumentManagement\05-update-document-put.bru" />
+    <None Include=".bruno\DocumentManagement\06-update-document-patch.bru" />
+    <None Include=".bruno\DocumentManagement\07-delete-document.bru" />
+    <None Include=".bruno\DocumentManagement\environments\local.bru" />
+    <None Include=".copilot\auth-generation-prompt.md" />
+    <None Include=".documentation\README.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.3" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
+  </ItemGroup>
+
+</Project>

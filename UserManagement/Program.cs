@@ -1,15 +1,15 @@
 using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using UserManagement.Authorization;
-using UserManagement.Services;
 using System.Text;
+using DocumentManagement.Authorization;
+using DocumentManagement.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-const string jwtIssuer = "UserManagement.Local";
-const string jwtAudience = "UserManagement.Api";
-const string jwtSigningKey = "UserManagement_Local_JWT_Signing_Key_2026!";
+const string jwtIssuer = "DocumentManagement.Local";
+const string jwtAudience = "DocumentManagement.Api";
+const string jwtSigningKey = "DocumentManagement_Local_JWT_Signing_Key_2026!";
 
 // Add services to the container.
 builder.Services.AddControllers();

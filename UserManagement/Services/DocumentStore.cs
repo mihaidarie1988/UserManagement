@@ -1,6 +1,6 @@
-using UserManagement.Models;
+namespace DocumentManagement.Services;
 
-namespace UserManagement.Services;
+using Models;
 
 public sealed class DocumentStore
 {

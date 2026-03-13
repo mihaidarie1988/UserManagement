@@ -1,9 +1,9 @@
+namespace DocumentManagement.Authorization;
+
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using System.Security.Claims;
-using UserManagement.Services;
-
-namespace UserManagement.Authorization;
+using Services;
 
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class DocumentOwnershipAttribute() : TypeFilterAttribute(typeof(DocumentOwnershipFilter));

@@ -1,8 +1,8 @@
+namespace DocumentManagement.Authorization;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
-
-namespace UserManagement.Authorization;
 
 public sealed class BearerSecurityOperationFilter : IOperationFilter
 {

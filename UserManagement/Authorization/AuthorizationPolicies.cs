@@ -1,4 +1,4 @@
-namespace UserManagement.Authorization;
+namespace DocumentManagement.Authorization;
 
 public static class AuthorizationPolicies
 {

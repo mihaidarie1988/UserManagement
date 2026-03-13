@@ -1,10 +1,10 @@
-using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
-using UserManagement.Authorization;
-using UserManagement.Models;
-using UserManagement.Services;
+namespace DocumentManagement.Controllers;
 
-namespace UserManagement.Controllers;
+using System.Security.Claims;
+using Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Models;
+using Services;
 
 [ApiController]
 [Route("[controller]")]

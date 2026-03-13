@@ -1,6 +1,6 @@
-using Microsoft.AspNetCore.Authorization;
+namespace DocumentManagement.Authorization;
 
-namespace UserManagement.Authorization;
+using Microsoft.AspNetCore.Authorization;
 
 public sealed class ReadAccessAttribute : AuthorizeAttribute
 {
