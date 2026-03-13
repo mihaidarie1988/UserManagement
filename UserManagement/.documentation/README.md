@@ -93,14 +93,19 @@ Authentication is JWT Bearer-based.
 
 > **Port:** The examples below use `7274`. Check your startup output and adjust if yours differs.
 
-### bash
+### curl (Git Bash · WSL · macOS Terminal)
+
+> **Windows:** open **Git Bash** (installed with [Git for Windows](https://git-scm.com/downloads)) — `cmd` does not support `$()` or `sed`.
 
 ```bash
 # ── Ownership scenario (alice vs bob) ─────────────────────────────────────────
 
 ALICE=$(curl -s -k -X POST https://localhost:7274/auth/token -H "Content-Type: application/json" -d '{"username":"alice","password":"alice123!"}' | sed 's/.*"accessToken":"\([^"]*\)".*/\1/')
+echo "ALICE's token: $ALICE"
 
 BOB=$(curl -s -k -X POST https://localhost:7274/auth/token -H "Content-Type: application/json" -d '{"username":"bob","password":"bob123!"}' | sed 's/.*"accessToken":"\([^"]*\)".*/\1/')
+
+echo "BOB's token: $BOB"
 
 # Alice sees only her documents (ids 1 and 2)
 curl -s -k https://localhost:7274/Document -H "Authorization: Bearer $ALICE"
@@ -117,6 +122,7 @@ curl -s -k -o /dev/null -w "%{http_code}" -X PATCH https://localhost:7274/Docume
 # ── Role restriction scenario (charlie has no Delete role) ────────────────────
 
 CHARLIE=$(curl -s -k -X POST https://localhost:7274/auth/token -H "Content-Type: application/json" -d '{"username":"charlie","password":"charlie123!"}' | sed 's/.*"accessToken":"\([^"]*\)".*/\1/')
+echo "CHARLIE's token: $CHARLIE"
 
 # Charlie reads and updates his own document — both succeed
 curl -s -k https://localhost:7274/Document/4 -H "Authorization: Bearer $CHARLIE"
@@ -129,7 +135,8 @@ curl -s -k -o /dev/null -w "%{http_code}" -X DELETE https://localhost:7274/Docum
 # ── Admin bypasses ownership ──────────────────────────────────────────────────
 
 ADMIN=$(curl -s -k -X POST https://localhost:7274/auth/token -H "Content-Type: application/json" -d '{"username":"admin","password":"admin123!"}' | sed 's/.*"accessToken":"\([^"]*\)".*/\1/')
+echo "ADMIN's token: $ADMIN"
 
-# Admin sees all four documents
+# Admin sees
 curl -s -k https://localhost:7274/Document -H "Authorization: Bearer $ADMIN"
 ```
