@@ -30,7 +30,7 @@ dotnet run
 
 When the app starts, open:
 
-- `https://localhost:7274/swagger/index.html`
+- `https://localhost:7275/swagger/index.html`
 
 (Use the HTTPS port shown in the startup output.)
 
@@ -47,7 +47,7 @@ When the app starts, open:
 
 ## Example curl
 
-> **Port:** The examples below use `7274`. Check your startup output and adjust if yours differs.
+> **Port:** The examples below use `7275`. Check your startup output and adjust if yours differs.
 
 ### curl (Git Bash · WSL · macOS Terminal)
 
@@ -55,20 +55,20 @@ When the app starts, open:
 
 ```bash
 # Create a document
-curl -s -k -X POST https://localhost:7274/Document -H "Content-Type: application/json" -d '{"title":"My Document","content":"Document content goes here."}'
+curl -s -k -X POST https://localhost:7275/Document -H "Content-Type: application/json" -d '{"title":"My Document","content":"Document content goes here."}'
 
 # Get all documents
-curl -s -k https://localhost:7274/Document
+curl -s -k https://localhost:7275/Document
 
 # Get document by id
-curl -s -k https://localhost:7274/Document/1
+curl -s -k https://localhost:7275/Document/1
 
 # Update a document (PUT)
-curl -s -k -X PUT https://localhost:7274/Document/1 -H "Content-Type: application/json" -d '{"title":"Updated Title","content":"Updated content."}'
+curl -s -k -X PUT https://localhost:7275/Document/1 -H "Content-Type: application/json" -d '{"title":"Updated Title","content":"Updated content."}'
 
 # Partially update a document (PATCH)
-curl -s -k -X PATCH https://localhost:7274/Document/1 -H "Content-Type: application/json" -d '{"title":"Partially Updated Title"}'
+curl -s -k -X PATCH https://localhost:7275/Document/1 -H "Content-Type: application/json" -d '{"title":"Partially Updated Title"}'
 
 # Delete a document
-curl -s -k -X DELETE https://localhost:7274/Document/1
+curl -s -k -X DELETE https://localhost:7275/Document/1
 ```
