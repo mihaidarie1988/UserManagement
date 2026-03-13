@@ -98,13 +98,9 @@ Authentication is JWT Bearer-based.
 ```bash
 # ── Ownership scenario (alice vs bob) ─────────────────────────────────────────
 
-ALICE=$(curl -s -k -X POST https://localhost:7274/auth/token \
-  -H "Content-Type: application/json" \
-  -d '{"username":"alice","password":"alice123!"}' | sed 's/.*"accessToken":"\([^"]*\)".*/\1/')
+ALICE=$(curl -s -k -X POST https://localhost:7274/auth/token -H "Content-Type: application/json" -d '{"username":"alice","password":"alice123!"}' | sed 's/.*"accessToken":"\([^"]*\)".*/\1/')
 
-BOB=$(curl -s -k -X POST https://localhost:7274/auth/token \
-  -H "Content-Type: application/json" \
-  -d '{"username":"bob","password":"bob123!"}' | sed 's/.*"accessToken":"\([^"]*\)".*/\1/')
+BOB=$(curl -s -k -X POST https://localhost:7274/auth/token -H "Content-Type: application/json" -d '{"username":"bob","password":"bob123!"}' | sed 's/.*"accessToken":"\([^"]*\)".*/\1/')
 
 # Alice sees only her documents (ids 1 and 2)
 curl -s -k https://localhost:7274/Document -H "Authorization: Bearer $ALICE"
@@ -113,40 +109,26 @@ curl -s -k https://localhost:7274/Document -H "Authorization: Bearer $ALICE"
 curl -s -k https://localhost:7274/Document -H "Authorization: Bearer $BOB"
 
 # Alice updates her own document — 204
-curl -s -k -X PATCH https://localhost:7274/Document/1 \
-  -H "Authorization: Bearer $ALICE" \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Updated by Alice"}'
+curl -s -k -X PATCH https://localhost:7274/Document/1 -H "Authorization: Bearer $ALICE" -H "Content-Type: application/json" -d '{"title":"Updated by Alice"}'
 
 # Alice tries to update Bob's document — 403
-curl -s -k -o /dev/null -w "%{http_code}" -X PATCH https://localhost:7274/Document/3 \
-  -H "Authorization: Bearer $ALICE" \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Alice tries to hijack"}'
+curl -s -k -o /dev/null -w "%{http_code}" -X PATCH https://localhost:7274/Document/3 -H "Authorization: Bearer $ALICE" -H "Content-Type: application/json" -d '{"title":"Alice tries to hijack"}'
 
 # ── Role restriction scenario (charlie has no Delete role) ────────────────────
 
-CHARLIE=$(curl -s -k -X POST https://localhost:7274/auth/token \
-  -H "Content-Type: application/json" \
-  -d '{"username":"charlie","password":"charlie123!"}' | sed 's/.*"accessToken":"\([^"]*\)".*/\1/')
+CHARLIE=$(curl -s -k -X POST https://localhost:7274/auth/token -H "Content-Type: application/json" -d '{"username":"charlie","password":"charlie123!"}' | sed 's/.*"accessToken":"\([^"]*\)".*/\1/')
 
 # Charlie reads and updates his own document — both succeed
 curl -s -k https://localhost:7274/Document/4 -H "Authorization: Bearer $CHARLIE"
 
-curl -s -k -X PATCH https://localhost:7274/Document/4 \
-  -H "Authorization: Bearer $CHARLIE" \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Updated by Charlie"}'
+curl -s -k -X PATCH https://localhost:7274/Document/4 -H "Authorization: Bearer $CHARLIE" -H "Content-Type: application/json" -d '{"title":"Updated by Charlie"}'
 
 # Charlie tries to delete — 403 (missing Delete role, not an ownership issue)
-curl -s -k -o /dev/null -w "%{http_code}" -X DELETE https://localhost:7274/Document/4 \
-  -H "Authorization: Bearer $CHARLIE"
+curl -s -k -o /dev/null -w "%{http_code}" -X DELETE https://localhost:7274/Document/4 -H "Authorization: Bearer $CHARLIE"
 
 # ── Admin bypasses ownership ──────────────────────────────────────────────────
 
-ADMIN=$(curl -s -k -X POST https://localhost:7274/auth/token \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123!"}' | sed 's/.*"accessToken":"\([^"]*\)".*/\1/')
+ADMIN=$(curl -s -k -X POST https://localhost:7274/auth/token -H "Content-Type: application/json" -d '{"username":"admin","password":"admin123!"}' | sed 's/.*"accessToken":"\([^"]*\)".*/\1/')
 
 # Admin sees all four documents
 curl -s -k https://localhost:7274/Document -H "Authorization: Bearer $ADMIN"
