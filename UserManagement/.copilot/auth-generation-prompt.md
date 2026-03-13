@@ -1,9 +1,12 @@
-I have an existing ASP.NET Core Web API project (.NET 10) with CRUD endpoints for document management.
+I have an existing ASP.NET Core Web API project (.NET 10) named DocumentManagement.Workshop with CRUD endpoints for document management.
 
-Let's add authentication and authorization to the project:
+The project already contains:
+- `Models/Document.cs` — `Document(int Id, string Title, string Content)`, `WriteDocumentRequest`, `PatchDocumentRequest`
+- `Services/DocumentStore.cs` — singleton in-memory store with 4 seeded documents (no auth context yet)
+- `Controllers/DocumentController.cs` — full CRUD, no auth attributes, no ownership logic
+- `Program.cs` — basic setup with Swashbuckle; no auth middleware registered
 
-in `DocumentController`.
-Please add local JWT authentication + role-based authorization to match this exact behavior:
+Let's add authentication and authorization on top of this:
 
 GOAL
 - Use local JWT auth (no Azure/Entra/external identity provider).
@@ -42,9 +45,9 @@ REQUIREMENTS
 6) JWT authentication setup — update `Program.cs`
 - All types from steps 2–5 now exist; reference them here.
 - Store issuer/audience/signing key as local constants:
-  - Issuer:     `UserManagement.Local`
-  - Audience:   `UserManagement.Api`
-  - SigningKey: `UserManagement_Local_JWT_Signing_Key_2026!`
+  - Issuer:     `DocumentManagement.Local`
+  - Audience:   `DocumentManagement.Api`
+  - SigningKey: `DocumentManagement_Local_JWT_Signing_Key_2026!`
 - Register `JwtTokenOptions` as a singleton (these are the values `AuthController` will inject).
 - Configure:
   - `AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(...)`
@@ -66,42 +69,67 @@ REQUIREMENTS
 - Add `POST /auth/token` ([AllowAnonymous]) that accepts:
   - `{ "username": "...", "password": "..." }`
 - Validate against in-memory local users:
-  - `reader  / reader123!`  => `Read`
-  - `creator / creator123!` => `Create`
-  - `editor  / editor123!`  => `Update`
-  - `deleter / deleter123!` => `Delete`
+  - `alice   / alice123!`   => `Read, Create, Update, Delete`
+  - `bob     / bob123!`     => `Read, Create, Update, Delete`
+  - `charlie / charlie123!` => `Read, Create, Update`          (no Delete — role restriction demo)
   - `admin   / admin123!`   => `Read, Create, Update, Delete, Admin`
 - On success return JWT + expiry + roles; on failure return 401.
+- JWT: `sub` claim = username, `role` claims = assigned roles, expiry = 60 min, HS256.
 
-8) Apply auth and ownership to `DocumentController` endpoints
+8) Add ownership field — update `Models/Document.cs`
+- Add `string CreatedBy` as the last field of the `Document` record:
+  `public record Document(int Id, string Title, string Content, string CreatedBy);`
+- `WriteDocumentRequest` and `PatchDocumentRequest` remain unchanged (`CreatedBy` is stamped server-side).
+
+9) Seed ownership data — update `Services/DocumentStore.cs`
+- Add the `CreatedBy` argument to all 4 seeded documents:
+  - Doc 1 "Project Proposal"          → `"alice"`
+  - Doc 2 "Meeting Notes"             → `"alice"`
+  - Doc 3 "Budget Overview"           → `"bob"`
+  - Doc 4 "Technical Specification"   → `"charlie"`
+- Add `GetByOwner(string username)` returning documents where `CreatedBy == username`.
+
+10) Ownership filter — create `Authorization/DocumentOwnershipFilter.cs`
+- Create `DocumentOwnershipAttribute : TypeFilterAttribute(typeof(DocumentOwnershipFilter))`.
+  Using `TypeFilterAttribute` lets the filter receive `DocumentStore` from the DI container.
+- Create `DocumentOwnershipFilter(DocumentStore store) : IAsyncAuthorizationFilter`.
+- In `OnAuthorizationAsync`:
+  - Read `id` from `context.RouteData.Values["id"]`; return early if not present or not an int.
+  - If `user.IsInRole(AuthorizationPolicies.AdminRole)` → pass through.
+  - If `store.FindById(id) is null` → pass through (let the action return 404).
+  - If `document.CreatedBy != user.FindFirstValue(ClaimTypes.NameIdentifier)` →
+    set `context.Result = new ForbidResult()`.
+
+11) Apply auth and ownership — update `Controllers/DocumentController.cs`
+- `DocumentStore` is already injected via primary constructor — keep it.
 - Add `using System.Security.Claims;`.
-- Add `string CreatedBy` as the last field of the `Document` record.
-- Pre-seeded documents should have `CreatedBy = "admin"`.
-- Add two private helpers (use `HttpContext.User` to avoid collision with the `Document` record):
-  - `IsAdmin()` — `HttpContext.User.IsInRole(AuthorizationPolicies.AdminRole)`
-  - `CurrentUsername()` — `HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)`
-- Endpoint rules:
-  - `POST /Document` — stamp `CreatedBy = CurrentUsername()` on the new record.
-  - `GET  /Document` — admin sees all; others see only documents where `CreatedBy == CurrentUsername()`.
-  - `GET  /Document/{id}`, `PUT`, `PATCH`, `DELETE` — return `404` if not found;
-    return `403` (`Forbid()`) if found but `!IsAdmin() && record.CreatedBy != CurrentUsername()`.
-  - PUT/PATCH must preserve the original `CreatedBy` when rebuilding the record.
-- Role-to-endpoint mapping:
-  - `GET  /Document`        -> `[ReadAccess]`
-  - `GET  /Document/{id}`   -> `[ReadAccess]`
-  - `POST /Document`        -> `[CreateAccess]`
-  - `PUT  /Document/{id}`   -> `[UpdateAccess]`
-  - `PATCH /Document/{id}`  -> `[UpdateAccess]`
-  - `DELETE /Document/{id}` -> `[DeleteAccess]`
+- Role-to-endpoint mapping (apply the corresponding attribute to each action):
+  - `GET  /Document`         → `[ReadAccess]`
+  - `GET  /Document/{id}`    → `[ReadAccess]`    + `[DocumentOwnership]`
+  - `POST /Document`         → `[CreateAccess]`
+  - `PUT  /Document/{id}`    → `[UpdateAccess]`  + `[DocumentOwnership]`
+  - `PATCH /Document/{id}`   → `[UpdateAccess]`  + `[DocumentOwnership]`
+  - `DELETE /Document/{id}`  → `[DeleteAccess]`  + `[DocumentOwnership]`
+- `POST /Document`: stamp `CreatedBy = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)!`.
+- `GET /Document`: admin sees all; others see only their own documents:
+  ```csharp
+  var docs = HttpContext.User.IsInRole(AuthorizationPolicies.AdminRole)
+      ? store.GetAll()
+      : store.GetByOwner(HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+  ```
+- PUT/PATCH: read the existing record first and preserve its `CreatedBy` when rebuilding.
+- Use `HttpContext.User` (not `User`) to avoid any naming collision.
 
-9) Cleanup and validation
+12) Cleanup and validation
 - Avoid any API-key auth logic or filters.
 - Keep minimal changes to existing controller endpoint behavior.
 - Ensure project builds successfully.
 
-10) README update
+13) README update
 - Document:
   - `POST /auth/token`
-  - Local users, roles, and role rules (Read/Create/Update/Delete)
-  - Endpoint-to-role mapping
+  - Local users table (alice/bob/charlie/admin), passwords, roles, seeded documents, what each user demonstrates
+  - Role rules (Read/Create/Update/Delete/Admin)
+  - Ownership rules
+  - Endpoint-to-role mapping table
   - curl examples for token + all endpoints with Bearer token
