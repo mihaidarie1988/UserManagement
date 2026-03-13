@@ -13,17 +13,11 @@
   <ItemGroup>
     <None Include=".bruno\UserManagement\01-auth-token.bru" />
     <None Include=".bruno\UserManagement\02-create-document.bru" />
-    <None Include=".bruno\UserManagement\02-create-user.bru" />
     <None Include=".bruno\UserManagement\03-get-documents.bru" />
-    <None Include=".bruno\UserManagement\03-get-users.bru" />
     <None Include=".bruno\UserManagement\04-get-document-by-id.bru" />
-    <None Include=".bruno\UserManagement\04-get-user-by-id.bru" />
     <None Include=".bruno\UserManagement\05-update-document-put.bru" />
-    <None Include=".bruno\UserManagement\05-update-user-put.bru" />
     <None Include=".bruno\UserManagement\06-update-document-patch.bru" />
-    <None Include=".bruno\UserManagement\06-update-user-patch.bru" />
     <None Include=".bruno\UserManagement\07-delete-document.bru" />
-    <None Include=".bruno\UserManagement\07-delete-user.bru" />
     <None Include=".bruno\UserManagement\environments\local.bru" />
     <None Include=".copilot\auth-generation-prompt.md" />
     <None Include=".documentation\README.md" />
