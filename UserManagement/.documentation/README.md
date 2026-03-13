@@ -54,23 +54,22 @@ Authentication is JWT Bearer-based.
 
 ### Local users
 
-| Username  | Password      | Roles                                    |
-|-----------|---------------|------------------------------------------|
-| `reader`  | `reader123!`  | `Read`                                   |
-| `creator` | `creator123!` | `Create`                                 |
-| `editor`  | `editor123!`  | `Update`                                 |
-| `deleter` | `deleter123!` | `Delete`                                 |
-| `admin`   | `admin123!`   | `Read`, `Create`, `Update`, `Delete`, `Admin` |
+| Username  | Password      | Roles                                         | Seeded documents           | What this demonstrates             |
+|-----------|---------------|-----------------------------------------------|----------------------------|------------------------------------|
+| `alice`   | `alice123!`   | Read, Create, Update, Delete                  | Doc 1 — Project Proposal<br>Doc 2 — Meeting Notes | Full CRUD, ownership isolation |
+| `bob`     | `bob123!`     | Read, Create, Update, Delete                  | Doc 3 — Budget Overview    | Full CRUD, ownership isolation     |
+| `charlie` | `charlie123!` | Read, Create, Update *(no Delete)*            | Doc 4 — Technical Specification | Role restriction: DELETE returns 403 |
+| `admin`   | `admin123!`   | Read, Create, Update, Delete, Admin           | all documents              | Ownership bypass                   |
 
 ### Role rules
 
-| Role     | Allowed operations                    |
-|----------|---------------------------------------|
-| `Read`   | GET endpoints                         |
-| `Create` | POST (create) endpoint                |
-| `Update` | PUT and PATCH endpoints               |
-| `Delete` | DELETE endpoint                       |
-| `Admin`  | All operations across all documents   |
+| Role     | Allowed operations                  |
+|----------|-------------------------------------|
+| `Read`   | GET endpoints                       |
+| `Create` | POST (create) endpoint              |
+| `Update` | PUT and PATCH endpoints             |
+| `Delete` | DELETE endpoint                     |
+| `Admin`  | All operations across all documents |
 
 ### Ownership rules
 
@@ -97,39 +96,130 @@ Authentication is JWT Bearer-based.
 ### bash (requires [`jq`](https://jqlang.org/download/))
 
 ```bash
-# 1) Get token and store it
-TOKEN=$(curl -s -k -X POST https://localhost:7274/auth/token \
+# ── Ownership scenario (alice vs bob) ─────────────────────────────────────────
+
+ALICE=$(curl -s -k -X POST https://localhost:7274/auth/token \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123!"}' \
-  | jq -r '.accessToken')
+  -d '{"username":"alice","password":"alice123!"}' | jq -r '.accessToken')
 
-# 2) Create document (requires Create role)
-curl -s -k -X POST https://localhost:7274/Document \
-  -H "Authorization: Bearer $TOKEN" \
+BOB=$(curl -s -k -X POST https://localhost:7274/auth/token \
   -H "Content-Type: application/json" \
-  -d '{"title":"New Document","content":"Document content goes here."}'
+  -d '{"username":"bob","password":"bob123!"}' | jq -r '.accessToken')
 
-# 3) Get all documents (requires Read role; non-admin sees own only)
-curl -s -k https://localhost:7274/Document \
-  -H "Authorization: Bearer $TOKEN"
+# Alice sees only her documents (ids 1 and 2)
+curl -s -k https://localhost:7274/Document -H "Authorization: Bearer $ALICE"
 
-# 4) Get document by id (requires Read role)
-curl -s -k https://localhost:7274/Document/1 \
-  -H "Authorization: Bearer $TOKEN"
+# Bob sees only his document (id 3)
+curl -s -k https://localhost:7274/Document -H "Authorization: Bearer $BOB"
 
-# 5) Replace document (requires Update role)
-curl -s -k -X PUT https://localhost:7274/Document/1 \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Updated Title","content":"Updated document content."}'
-
-# 6) Partially update document (requires Update role)
+# Alice updates her own document — 204
 curl -s -k -X PATCH https://localhost:7274/Document/1 \
-  -H "Authorization: Bearer $TOKEN" \
+  -H "Authorization: Bearer $ALICE" \
   -H "Content-Type: application/json" \
-  -d '{"title":"Partially Updated Title"}'
+  -d '{"title":"Updated by Alice"}'
 
-# 7) Delete document (requires Delete role)
-curl -s -k -X DELETE https://localhost:7274/Document/2 \
-  -H "Authorization: Bearer $TOKEN"
+# Alice tries to update Bob's document — 403
+curl -s -k -o /dev/null -w "%{http_code}" -X PATCH https://localhost:7274/Document/3 \
+  -H "Authorization: Bearer $ALICE" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Alice tries to hijack"}'
+
+# ── Role restriction scenario (charlie has no Delete role) ────────────────────
+
+CHARLIE=$(curl -s -k -X POST https://localhost:7274/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{"username":"charlie","password":"charlie123!"}' | jq -r '.accessToken')
+
+# Charlie reads and updates his own document — both succeed
+curl -s -k https://localhost:7274/Document/4 -H "Authorization: Bearer $CHARLIE"
+
+curl -s -k -X PATCH https://localhost:7274/Document/4 \
+  -H "Authorization: Bearer $CHARLIE" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Updated by Charlie"}'
+
+# Charlie tries to delete — 403 (missing Delete role, not an ownership issue)
+curl -s -k -o /dev/null -w "%{http_code}" -X DELETE https://localhost:7274/Document/4 \
+  -H "Authorization: Bearer $CHARLIE"
+
+# ── Admin bypasses ownership ──────────────────────────────────────────────────
+
+ADMIN=$(curl -s -k -X POST https://localhost:7274/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123!"}' | jq -r '.accessToken')
+
+# Admin sees all four documents
+curl -s -k https://localhost:7274/Document -H "Authorization: Bearer $ADMIN"
+```
+
+### PowerShell (no extra tools required)
+
+```powershell
+# ── Ownership scenario (alice vs bob) ─────────────────────────────────────────
+
+$ALICE = (Invoke-RestMethod -SkipCertificateCheck `
+  -Method Post -Uri "https://localhost:7274/auth/token" `
+  -ContentType "application/json" `
+  -Body '{"username":"alice","password":"alice123!"}').accessToken
+
+$BOB = (Invoke-RestMethod -SkipCertificateCheck `
+  -Method Post -Uri "https://localhost:7274/auth/token" `
+  -ContentType "application/json" `
+  -Body '{"username":"bob","password":"bob123!"}').accessToken
+
+# Alice sees only her documents (ids 1 and 2)
+Invoke-RestMethod -SkipCertificateCheck `
+  -Uri "https://localhost:7274/Document" -Headers @{ Authorization = "Bearer $ALICE" }
+
+# Bob sees only his document (id 3)
+Invoke-RestMethod -SkipCertificateCheck `
+  -Uri "https://localhost:7274/Document" -Headers @{ Authorization = "Bearer $BOB" }
+
+# Alice updates her own document — 204
+Invoke-RestMethod -SkipCertificateCheck `
+  -Method Patch -Uri "https://localhost:7274/Document/1" `
+  -Headers @{ Authorization = "Bearer $ALICE" } `
+  -ContentType "application/json" -Body '{"title":"Updated by Alice"}'
+
+# Alice tries to update Bob's document — 403
+try {
+  Invoke-RestMethod -SkipCertificateCheck `
+    -Method Patch -Uri "https://localhost:7274/Document/3" `
+    -Headers @{ Authorization = "Bearer $ALICE" } `
+    -ContentType "application/json" -Body '{"title":"Alice tries to hijack"}'
+} catch { $_.Exception.Response.StatusCode }
+
+# ── Role restriction scenario (charlie has no Delete role) ────────────────────
+
+$CHARLIE = (Invoke-RestMethod -SkipCertificateCheck `
+  -Method Post -Uri "https://localhost:7274/auth/token" `
+  -ContentType "application/json" `
+  -Body '{"username":"charlie","password":"charlie123!"}').accessToken
+
+# Charlie reads and updates his own document — both succeed
+Invoke-RestMethod -SkipCertificateCheck `
+  -Uri "https://localhost:7274/Document/4" -Headers @{ Authorization = "Bearer $CHARLIE" }
+
+Invoke-RestMethod -SkipCertificateCheck `
+  -Method Patch -Uri "https://localhost:7274/Document/4" `
+  -Headers @{ Authorization = "Bearer $CHARLIE" } `
+  -ContentType "application/json" -Body '{"title":"Updated by Charlie"}'
+
+# Charlie tries to delete — 403 (missing Delete role, not an ownership issue)
+try {
+  Invoke-RestMethod -SkipCertificateCheck `
+    -Method Delete -Uri "https://localhost:7274/Document/4" `
+    -Headers @{ Authorization = "Bearer $CHARLIE" }
+} catch { $_.Exception.Response.StatusCode }
+
+# ── Admin bypasses ownership ──────────────────────────────────────────────────
+
+$ADMIN = (Invoke-RestMethod -SkipCertificateCheck `
+  -Method Post -Uri "https://localhost:7274/auth/token" `
+  -ContentType "application/json" `
+  -Body '{"username":"admin","password":"admin123!"}').accessToken
+
+# Admin sees all four documents
+Invoke-RestMethod -SkipCertificateCheck `
+  -Uri "https://localhost:7274/Document" -Headers @{ Authorization = "Bearer $ADMIN" }
 ```

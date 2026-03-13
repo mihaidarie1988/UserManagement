@@ -6,8 +6,10 @@ public sealed class DocumentStore
 {
     private readonly List<Document> _documents =
     [
-        new Document(1, "Project Proposal", "Initial project proposal document.", "admin"),
-        new Document(2, "Meeting Notes", "Notes from the kick-off meeting.", "admin")
+        new Document(1, "Project Proposal", "Initial project proposal document.", "alice"),
+        new Document(2, "Meeting Notes", "Notes from the kick-off meeting.", "alice"),
+        new Document(3, "Budget Overview", "Q1 budget overview and projections.", "bob"),
+        new Document(4, "Technical Specification", "System architecture and design notes.", "charlie")
     ];
 
     public IReadOnlyList<Document> GetAll() => _documents;

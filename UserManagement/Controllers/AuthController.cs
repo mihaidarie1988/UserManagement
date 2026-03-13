@@ -15,10 +15,14 @@ public class AuthController(JwtTokenOptions jwt) : ControllerBase
     private static readonly Dictionary<string, (string Password, string[] Roles)> LocalUsersWithRoles =
         new(StringComparer.OrdinalIgnoreCase)
         {
-            ["reader"] = ("reader123!", [AuthorizationPolicies.ReadRole]),
-            ["creator"] = ("creator123!", [AuthorizationPolicies.CreateRole]),
-            ["editor"] = ("editor123!", [AuthorizationPolicies.UpdateRole]),
-            ["deleter"] = ("deleter123!", [AuthorizationPolicies.DeleteRole]),
+            // Full-CRUD users — for demonstrating per-document ownership
+            ["alice"] = ("alice123!", [AuthorizationPolicies.ReadRole, AuthorizationPolicies.CreateRole, AuthorizationPolicies.UpdateRole, AuthorizationPolicies.DeleteRole]),
+            ["bob"] = ("bob123!", [AuthorizationPolicies.ReadRole, AuthorizationPolicies.CreateRole, AuthorizationPolicies.UpdateRole, AuthorizationPolicies.DeleteRole]),
+
+            // Restricted user — Read + Create + Update, no Delete; shows role enforcement
+            ["charlie"] = ("charlie123!", [AuthorizationPolicies.ReadRole, AuthorizationPolicies.CreateRole, AuthorizationPolicies.UpdateRole]),
+
+            // Admin — full access, bypasses ownership
             ["admin"] = ("admin123!", [AuthorizationPolicies.ReadRole, AuthorizationPolicies.CreateRole, AuthorizationPolicies.UpdateRole, AuthorizationPolicies.DeleteRole, AuthorizationPolicies.AdminRole])
         };
 
