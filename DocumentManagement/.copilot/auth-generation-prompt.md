@@ -133,3 +133,69 @@ REQUIREMENTS
   - Ownership rules
   - Endpoint-to-role mapping table
   - curl examples for token + all endpoints with Bearer token
+
+14) Bruno collection updates — `.bruno/DocumentManagement.Workshop/`
+The workshop Bruno collection currently has 6 request files (no auth). Auth needs to be added
+throughout. Use the structure of the existing `.bru` files as the format reference.
+
+a) Create `01-auth-token.bru` — new token request (anonymous, no Bearer):
+   ```
+   meta {
+     name: Auth - Get JWT Token
+     type: http
+     seq: 1
+   }
+
+   post {
+     url: {{baseUrl}}/auth/token
+     body: json
+     auth: none
+   }
+
+   headers {
+     Content-Type: application/json
+   }
+
+   body:json {
+     {
+       "username": "admin",
+       "password": "admin123!"
+     }
+   }
+   ```
+
+b) Renumber all 6 existing request files — both the filename prefix AND the `seq` value
+   inside each file must be incremented by 1 to make room for the new `01-auth-token.bru`:
+   - `01-create-document.bru`    → `02-create-document.bru`    (seq: 1 → seq: 2)
+   - `02-get-documents.bru`      → `03-get-documents.bru`      (seq: 2 → seq: 3)
+   - `03-get-document-by-id.bru` → `04-get-document-by-id.bru` (seq: 3 → seq: 4)
+   - `04-update-document-put.bru`→ `05-update-document-put.bru`(seq: 4 → seq: 5)
+   - `05-update-document-patch.bru`→`06-update-document-patch.bru`(seq: 5 → seq: 6)
+   - `06-delete-document.bru`    → `07-delete-document.bru`    (seq: 6 → seq: 7)
+
+c) Add Bearer auth to every renamed document request file (all 6).
+   Replace `auth: none` with `auth: bearer` and add the `auth:bearer` block directly after
+   the closing `}` of the `post`/`get`/`put`/`patch`/`delete` block, before `headers`:
+   ```
+   auth:bearer {
+     token: {{accessToken}}
+   }
+   ```
+
+d) Update `environments/local.bru` — add `accessToken` as a secret variable so it can be
+   pasted in from the token response without being stored in plain text:
+   ```
+   vars {
+     baseUrl: https://localhost:7275
+     documentId: 1
+   }
+   vars:secret [
+     accessToken
+   ]
+   ```
+
+e) Update `DocumentManagement.Workshop.csproj` — update the `<None Include>` entries in the
+   `<ItemGroup>` that lists the `.bru` files to reflect the renamed files and the new one:
+   - Remove the 6 old `<None Include>` entries for `01-` through `06-`.
+   - Add `<None Include=".bruno\DocumentManagement.Workshop\01-auth-token.bru" />`
+   - Add `<None Include>` entries for the 6 renamed files (`02-` through `07-`).
