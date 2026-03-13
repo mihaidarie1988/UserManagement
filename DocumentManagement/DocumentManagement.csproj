@@ -21,6 +21,7 @@
     <None Include=".bruno\DocumentManagement\environments\local.bru" />
     <None Include=".copilot\auth-generation-prompt.md" />
     <None Include=".documentation\README.md" />
+    <None Include="DocumentManagement-workshop\DocumentManagement.Workshop.csproj" />
   </ItemGroup>
 
   <ItemGroup>

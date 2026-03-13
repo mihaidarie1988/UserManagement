@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="DocumentManagement-workshop/DocumentManagement.Workshop.csproj" />
+  <Project Path="DocumentManagement/DocumentManagement.csproj" />
+</Solution>
