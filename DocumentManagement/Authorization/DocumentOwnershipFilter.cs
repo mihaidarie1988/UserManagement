@@ -18,7 +18,7 @@ public sealed class DocumentOwnershipFilter(DocumentStore store) : IAsyncAuthori
 
         var user = context.HttpContext.User;
 
-        if (user.IsInRole(AuthorizationPolicies.AdminRole))
+        if (user.IsInRole(AppRoles.Admin))
             return Task.CompletedTask;
 
         var document = store.FindById(id);

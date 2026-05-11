@@ -16,14 +16,14 @@ public class AuthController(JwtTokenOptions jwt) : ControllerBase
         new(StringComparer.OrdinalIgnoreCase)
         {
             // Full-CRUD users — for demonstrating per-document ownership
-            ["alice"] = ("alice123!", [AuthorizationPolicies.ReadRole, AuthorizationPolicies.CreateRole, AuthorizationPolicies.UpdateRole, AuthorizationPolicies.DeleteRole]),
-            ["bob"] = ("bob123!", [AuthorizationPolicies.ReadRole, AuthorizationPolicies.CreateRole, AuthorizationPolicies.UpdateRole, AuthorizationPolicies.DeleteRole]),
+            ["alice"] = ("alice123!", [AppRoles.Manager]),
+            ["bob"]   = ("bob123!",   [AppRoles.Manager]),
 
             // Restricted user — Read + Create + Update, no Delete; shows role enforcement
-            ["charlie"] = ("charlie123!", [AuthorizationPolicies.ReadRole, AuthorizationPolicies.CreateRole, AuthorizationPolicies.UpdateRole]),
+            ["charlie"] = ("charlie123!", [AppRoles.Editor]),
 
             // Admin — full access, bypasses ownership
-            ["admin"] = ("admin123!", [AuthorizationPolicies.ReadRole, AuthorizationPolicies.CreateRole, AuthorizationPolicies.UpdateRole, AuthorizationPolicies.DeleteRole, AuthorizationPolicies.AdminRole])
+            ["admin"] = ("admin123!", [AppRoles.Admin])
         };
 
     public record TokenRequest(string Username, string Password);
@@ -54,6 +54,9 @@ public class AuthController(JwtTokenOptions jwt) : ControllerBase
         };
 
         claims.AddRange(account.Roles.Select(role => new Claim(ClaimTypes.Role, role)));
+
+        var permissions = account.Roles.SelectMany(AppRoles.GetPermissions).Distinct();
+        claims.AddRange(permissions.Select(p => new Claim("permission", p)));
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.SigningKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

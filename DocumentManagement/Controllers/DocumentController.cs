@@ -38,7 +38,7 @@ public class DocumentController(DocumentStore store) : ControllerBase
     [ReadAccess]
     public IActionResult GetDocuments()
     {
-        var docs = HttpContext.User.IsInRole(AuthorizationPolicies.AdminRole)
+        var docs = HttpContext.User.IsInRole(AppRoles.Admin)
             ? store.GetAll()
             : store.GetByOwner(HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
