@@ -114,7 +114,9 @@ curl -s -k https://localhost:7274/Document -H "Authorization: Bearer $ALICE"
 curl -s -k https://localhost:7274/Document -H "Authorization: Bearer $BOB"
 
 # Alice updates her own document — 204
-curl -s -k -X PATCH https://localhost:7274/Document/1 -H "Authorization: Bearer $ALICE" -H "Content-Type: application/json" -d '{"title":"Updated by Alice"}' -w " → %{http_code}"
+curl -s -k  -o /dev/null -w "%{http_code}"  -X PATCH https://localhost:7274/Document/1 -H "Authorization: Bearer $ALICE" -H "Content-Type: application/json" -d '{"title":"Updated by Alice"}'
+
+curl -s -k https://localhost:7274/Document -H "Authorization: Bearer $ALICE"
 
 # Alice tries to update Bob's document — 403
 curl -s -k -o /dev/null -w "%{http_code}" -X PATCH https://localhost:7274/Document/3 -H "Authorization: Bearer $ALICE" -H "Content-Type: application/json" -d '{"title":"Alice tries to hijack"}'
@@ -139,5 +141,7 @@ echo "ADMIN's token: $ADMIN"
 
 # Admin sees
 curl -s -k https://localhost:7274/Document -H "Authorization: Bearer $ADMIN"
+
+curl -s -k -X DELETE https://localhost:7274/Document/4 -H "Authorization: Bearer $ADMIN"
 
 ```
