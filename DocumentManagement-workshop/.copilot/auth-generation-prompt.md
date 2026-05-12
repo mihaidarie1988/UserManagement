@@ -31,6 +31,24 @@ Role-to-permission mapping:
   Admin   → document:read, document:create, document:update, document:delete
             (also bypasses document ownership checks)
 
+FILE / CLASS LAYOUT RULE (applies to every step below)
+
+The workshop version must mirror the layout of the existing full `DocumentManagement`
+project exactly. Concretely:
+
+- Create ONLY the files listed in the steps below, at the exact paths given.
+  Do NOT introduce any extra files, folders, partial classes, interfaces, abstract base
+  classes, helper services, DTO files, extension-method classes, or marker types beyond
+  what each step explicitly names.
+- When a step puts two types in one file (e.g. `DocumentOwnershipAttribute` and
+  `DocumentOwnershipFilter` both in `Authorization/DocumentOwnershipFilter.cs`, or
+  `Document` + `WriteDocumentRequest` + `PatchDocumentRequest` all in `Models/Document.cs`,
+  or `TokenRequest` + `TokenResponse` nested inside `AuthController`), keep them in that
+  single file — do not split them across new files.
+- Do not move, rename, or duplicate existing files. The only renames allowed are the
+  Bruno `.bru` files in step 16.
+- Do not add controllers, services, middleware, or filters that are not listed below.
+
 REQUIREMENTS
 
 1) NuGet packages
@@ -78,7 +96,8 @@ REQUIREMENTS
 - Create a record `JwtTokenOptions(string Issuer, string Audience, string SigningKey)`.
 
 6) Custom authorize attributes — create `Authorization/RoleAuthorizeAttributes.cs`
-- Add `[ReadAccess]`, `[CreateAccess]`, `[UpdateAccess]`, `[DeleteAccess]` attributes.
+- All four attributes (`[ReadAccess]`, `[CreateAccess]`, `[UpdateAccess]`, `[DeleteAccess]`)
+  live in this single file — do NOT split them into separate files.
 - Each must be a `sealed` class that inherits `AuthorizeAttribute`.
 - Use **explicit constructors with a `Policy =` assignment** — do NOT use primary constructor
   syntax (no `AuthorizeAttribute(...)` base call in the class declaration):
@@ -197,9 +216,11 @@ REQUIREMENTS
 ----- end of part 4 ------------
 
 11) Ownership filter — create `Authorization/DocumentOwnershipFilter.cs`
-- Create `DocumentOwnershipAttribute : TypeFilterAttribute(typeof(DocumentOwnershipFilter))`.
-  Using `TypeFilterAttribute` lets the filter receive `DocumentStore` from the DI container.
-- Create `DocumentOwnershipFilter(DocumentStore store) : IAsyncAuthorizationFilter`.
+- This single file must contain BOTH the attribute and the filter class — do NOT split
+  `DocumentOwnershipAttribute` into its own file:
+  - `DocumentOwnershipAttribute : TypeFilterAttribute(typeof(DocumentOwnershipFilter))`.
+    Using `TypeFilterAttribute` lets the filter receive `DocumentStore` from the DI container.
+  - `DocumentOwnershipFilter(DocumentStore store) : IAsyncAuthorizationFilter`.
 - In `OnAuthorizationAsync`:
   - Read `id` from `context.RouteData.Values["id"]`; return early if not present or not an int.
   - If `user.IsInRole(AppRoles.Admin)` → pass through (admin bypasses ownership).
