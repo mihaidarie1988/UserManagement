@@ -109,8 +109,9 @@ REQUIREMENTS
 
 7) JWT authentication setup — update `Program.cs`
 - All types from steps 2–7 now exist; reference them here.
-- Do NOT create an `appsettings.json` file or use `IConfiguration` / `builder.Configuration`
-  to bind JWT settings. The values are hardcoded directly in `Program.cs`.
+- Do NOT create, modify, or read from `appsettings.json` (or any `appsettings.*.json`) for
+  JWT settings. Do NOT use `IConfiguration` / `builder.Configuration` to bind them.
+  The values are hardcoded as `const string` locals directly in `Program.cs`.
 - Store issuer/audience/signing key as local constants:
   - Issuer:     `DocumentManagement.Local`
   - Audience:   `DocumentManagement.Api`
