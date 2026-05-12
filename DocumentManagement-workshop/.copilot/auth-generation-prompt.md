@@ -79,17 +79,38 @@ REQUIREMENTS
 
 6) Custom authorize attributes — create `Authorization/RoleAuthorizeAttributes.cs`
 - Add `[ReadAccess]`, `[CreateAccess]`, `[UpdateAccess]`, `[DeleteAccess]` attributes.
-- Each inherits `AuthorizeAttribute` and sets its `Policy` from `AuthorizationPolicies`.
+- Each must be a `sealed` class that inherits `AuthorizeAttribute`.
+- Use **explicit constructors with a `Policy =` assignment** — do NOT use primary constructor
+  syntax (no `AuthorizeAttribute(...)` base call in the class declaration):
+  ```csharp
+  public sealed class ReadAccessAttribute : AuthorizeAttribute
+  {
+      public ReadAccessAttribute() { Policy = AuthorizationPolicies.ReadPolicy; }
+  }
 
-7) Swagger operation filter — create `Authorization/BearerSecurityOperationFilter.cs`
-- Implement `BearerSecurityOperationFilter : IOperationFilter`.
-- Detect `[Authorize]` (or derived attributes) on the action or its declaring type.
-- If found, add an `OpenApiSecurityRequirement` referencing the `Bearer` scheme
-  (`ReferenceType.SecurityScheme`, Id = `"Bearer"`).
-- Use `using Microsoft.OpenApi.Models;` (NOT `Microsoft.OpenApi`).
+  public sealed class CreateAccessAttribute : AuthorizeAttribute
+  {
+      public CreateAccessAttribute() { Policy = AuthorizationPolicies.CreatePolicy; }
+  }
 
-8) JWT authentication setup — update `Program.cs`
+  public sealed class UpdateAccessAttribute : AuthorizeAttribute
+  {
+      public UpdateAccessAttribute() { Policy = AuthorizationPolicies.UpdatePolicy; }
+  }
+
+  public sealed class DeleteAccessAttribute : AuthorizeAttribute
+  {
+      public DeleteAccessAttribute() { Policy = AuthorizationPolicies.DeletePolicy; }
+  }
+  ```
+
+
+---------- end of part 1 ------------
+
+7) JWT authentication setup — update `Program.cs`
 - All types from steps 2–7 now exist; reference them here.
+- Do NOT create an `appsettings.json` file or use `IConfiguration` / `builder.Configuration`
+  to bind JWT settings. The values are hardcoded directly in `Program.cs`.
 - Store issuer/audience/signing key as local constants:
   - Issuer:     `DocumentManagement.Local`
   - Audience:   `DocumentManagement.Api`
@@ -110,7 +131,11 @@ REQUIREMENTS
   - Register `options.OperationFilter<BearerSecurityOperationFilter>()`.
 - Keep Swagger enabled in development.
 
-9) Token issuing endpoint — create `Controllers/AuthController.cs`
+------ end of part 2 ------------
+
+8) Token issuing endpoint — create `Controllers/AuthController.cs`
+- Do NOT create a separate `TokenService` or any other helper class for token generation.
+  All JWT creation logic lives directly inside `AuthController`.
 - Inject `JwtTokenOptions` via primary constructor.
 - Add `AuthController` with route `auth`.
 - Add `POST /auth/token` ([AllowAnonymous]) that accepts `{ "username": "...", "password": "..." }`.
@@ -127,20 +152,26 @@ REQUIREMENTS
     (deduplicated; use `SelectMany(...).Distinct()`)
   - Expiry = 60 min, algorithm = HS256
 
-10) Add ownership field — update `Models/Document.cs`
+------ end of part 3 ------------
+
+9) Add ownership field — update `Models/Document.cs`
 - Add `string CreatedBy` as the last field of the `Document` record:
   `public record Document(int Id, string Title, string Content, string CreatedBy);`
 - `WriteDocumentRequest` and `PatchDocumentRequest` remain unchanged (`CreatedBy` is stamped server-side).
 
-11) Seed ownership data — update `Services/DocumentStore.cs`
+10) Seed ownership data — update `Services/DocumentStore.cs`
 - Add the `CreatedBy` argument to all 4 seeded documents:
   - Doc 1 "Project Proposal"        → `"alice"`
   - Doc 2 "Meeting Notes"           → `"alice"`
   - Doc 3 "Budget Overview"         → `"bob"`
   - Doc 4 "Technical Specification" → `"charlie"`
 - Add `GetByOwner(string username)` returning documents where `CreatedBy == username`.
+- Update `NextId()` to use `Max`-based calculation instead of a counter field:
+  `public int NextId() => _documents.Count == 0 ? 1 : _documents.Max(d => d.Id) + 1;`
 
-12) Ownership filter — create `Authorization/DocumentOwnershipFilter.cs`
+----- end of part 4 ------------
+
+11) Ownership filter — create `Authorization/DocumentOwnershipFilter.cs`
 - Create `DocumentOwnershipAttribute : TypeFilterAttribute(typeof(DocumentOwnershipFilter))`.
   Using `TypeFilterAttribute` lets the filter receive `DocumentStore` from the DI container.
 - Create `DocumentOwnershipFilter(DocumentStore store) : IAsyncAuthorizationFilter`.
@@ -151,9 +182,18 @@ REQUIREMENTS
   - If `document.CreatedBy != user.FindFirstValue(ClaimTypes.NameIdentifier)` →
     set `context.Result = new ForbidResult()`.
 
-13) Apply auth and ownership — update `Controllers/DocumentController.cs`
+
+----- end of part 5 ------------
+
+12) Apply auth and ownership — update `Controllers/DocumentController.cs`
 - `DocumentStore` is already injected via primary constructor — keep it.
 - Add `using System.Security.Claims;` and `using Authorization;`.
+- Do NOT add any private helper properties or methods for auth concerns (e.g. `CurrentUser`,
+  `IsAdmin`, `CanAccess`). Authorization and ownership *enforcement* belongs exclusively in
+  `DocumentOwnershipFilter` (step 11) — the controller must not make any `Forbid()`/access
+  decisions itself.
+- The two exceptions below are **identity reads for business logic** (not authorization checks)
+  and are the only places `HttpContext.User` appears in the controller:
 - Permission-to-endpoint mapping (apply the corresponding attribute to each action):
   - `GET  /Document`          → `[ReadAccess]`
   - `GET  /Document/{id}`     → `[ReadAccess]`   + `[DocumentOwnership]`
@@ -170,6 +210,16 @@ REQUIREMENTS
   ```
 - PUT/PATCH: read the existing record first and preserve its `CreatedBy` when rebuilding.
 - Use `HttpContext.User` (not `User`) to avoid naming collisions.
+
+
+--------- end of part 6 ------------
+
+13) Swagger operation filter — create `Authorization/BearerSecurityOperationFilter.cs`
+- Implement `BearerSecurityOperationFilter : IOperationFilter`.
+- Detect `[Authorize]` (or derived attributes) on the action or its declaring type.
+- If found, add an `OpenApiSecurityRequirement` referencing the `Bearer` scheme
+  (`ReferenceType.SecurityScheme`, Id = `"Bearer"`).
+- Use `using Microsoft.OpenApi.Models;` (NOT `Microsoft.OpenApi`).
 
 14) Cleanup and validation
 - Avoid any API-key auth logic or filters.
@@ -251,3 +301,5 @@ e) Update `DocumentManagement.Workshop.csproj` — update the `<None Include>` e
    - Remove the 6 old `<None Include>` entries for `01-` through `06-`.
    - Add `<None Include=".bruno\DocumentManagement.Workshop\01-auth-token.bru" />`
    - Add `<None Include>` entries for the 6 renamed files (`02-` through `07-`).
+
+---- end of part 7 ------------

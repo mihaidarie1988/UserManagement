@@ -18,6 +18,7 @@
     <None Include=".bruno\DocumentManagement.Workshop\05-update-document-patch.bru" />
     <None Include=".bruno\DocumentManagement.Workshop\06-delete-document.bru" />
     <None Include=".bruno\DocumentManagement.Workshop\environments\local.bru" />
+    <None Include=".copilot\auth-generation-prompt.md" />
     <None Include=".documentation\README.md" />
   </ItemGroup>
 
