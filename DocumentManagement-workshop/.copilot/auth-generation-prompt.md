@@ -135,20 +135,41 @@ REQUIREMENTS
 ------ end of part 2 ------------
 
 8) Token issuing endpoint — create `Controllers/AuthController.cs`
-- Do NOT create a separate `TokenService` or any other helper class for token generation.
-  All JWT creation logic lives directly inside `AuthController`.
+- Do NOT create a separate `TokenService`, `UserStore`, or any other helper class for token
+  generation or user lookup. All JWT creation logic and user data live directly inside
+  `AuthController`.
 - Inject `JwtTokenOptions` via primary constructor.
 - Add `AuthController` with route `auth`.
-- Add `POST /auth/token` ([AllowAnonymous]) that accepts `{ "username": "...", "password": "..." }`.
-- Validate against in-memory local users (each user has one role):
-  - `alice   / alice123!`   => role `Manager`  (demonstrates ownership, full CRUD)
-  - `bob     / bob123!`     => role `Manager`  (demonstrates ownership, full CRUD)
-  - `charlie / charlie123!` => role `Editor`   (no Delete — demonstrates role restriction)
-  - `admin   / admin123!`   => role `Admin`    (bypasses ownership, full CRUD)
-- On success return JWT + expiry + roles array; on failure return 401.
+- Declare a private static readonly dictionary of local users directly in the class:
+  ```csharp
+  private static readonly Dictionary<string, (string Password, string[] Roles)> LocalUsersWithRoles =
+      new(StringComparer.OrdinalIgnoreCase)
+      {
+          // Full-CRUD users — for demonstrating per-document ownership
+          ["alice"] = ("alice123!", [AppRoles.Manager]),
+          ["bob"]   = ("bob123!",   [AppRoles.Manager]),
+
+          // Restricted user — Read + Create + Update, no Delete; shows role enforcement
+          ["charlie"] = ("charlie123!", [AppRoles.Editor]),
+
+          // Admin — full access, bypasses ownership
+          ["admin"] = ("admin123!", [AppRoles.Admin])
+      };
+  ```
+- Declare `TokenRequest` and `TokenResponse` as nested records inside `AuthController`
+  (NOT in `Models/`):
+  ```csharp
+  public record TokenRequest(string Username, string Password);
+  public record TokenResponse(string AccessToken, DateTime ExpiresAtUtc, string[] Roles);
+  ```
+- Add `POST /auth/token` ([AllowAnonymous]) that accepts `TokenRequest`.
+- Validate using `LocalUsersWithRoles.TryGetValue` + `string.Equals(..., Ordinal)`;
+  return `Unauthorized("Invalid username or password.")` on failure.
+- On success return `Ok(new TokenResponse(tokenValue, expires, account.Roles))`.
 - JWT must include:
-  - `sub` claim = username
-  - `ClaimTypes.Role` claim(s) = assigned role(s)
+  - `sub` claim (`JwtRegisteredClaimNames.Sub`) = username
+  - `jti` claim (`JwtRegisteredClaimNames.Jti`) = `Guid.NewGuid().ToString()`
+  - `ClaimTypes.Role` claim(s) = assigned role(s) (one per role in the array)
   - `permission` claim(s) = all permissions derived from the role(s) via `AppRoles.GetPermissions`
     (deduplicated; use `SelectMany(...).Distinct()`)
   - Expiry = 60 min, algorithm = HS256
@@ -158,7 +179,10 @@ REQUIREMENTS
 9) Add ownership field — update `Models/Document.cs`
 - Add `string CreatedBy` as the last field of the `Document` record:
   `public record Document(int Id, string Title, string Content, string CreatedBy);`
-- `WriteDocumentRequest` and `PatchDocumentRequest` remain unchanged (`CreatedBy` is stamped server-side).
+- `WriteDocumentRequest` and `PatchDocumentRequest` remain unchanged (`CreatedBy` is stamped
+  server-side).
+- Do NOT add `TokenRequest` or any auth-related types to `Models/Document.cs`. Those records
+  are nested inside `AuthController` (see step 8).
 
 10) Seed ownership data — update `Services/DocumentStore.cs`
 - Add the `CreatedBy` argument to all 4 seeded documents:
@@ -191,10 +215,12 @@ REQUIREMENTS
 - Add `using System.Security.Claims;` and `using Authorization;`.
 - Do NOT add any private helper properties or methods for auth concerns (e.g. `CurrentUser`,
   `IsAdmin`, `CanAccess`). Authorization and ownership *enforcement* belongs exclusively in
-  `DocumentOwnershipFilter` (step 11) — the controller must not make any `Forbid()`/access
-  decisions itself.
-- The two exceptions below are **identity reads for business logic** (not authorization checks)
-  and are the only places `HttpContext.User` appears in the controller:
+  `DocumentOwnershipFilter` (step 11) — the controller must NOT make any `Forbid()` calls
+  or access decisions itself. No `if (!IsAdmin && ...)` blocks, no `OwnerId` comparisons.
+- `HttpContext.User` appears in exactly two places in the controller (identity reads for
+  business logic only, not authorization):
+  1. `POST /Document` — stamp `CreatedBy`.
+  2. `GET /Document` — filter the list by owner (non-admin users see only their own docs).
 - Permission-to-endpoint mapping (apply the corresponding attribute to each action):
   - `GET  /Document`          → `[ReadAccess]`
   - `GET  /Document/{id}`     → `[ReadAccess]`   + `[DocumentOwnership]`
